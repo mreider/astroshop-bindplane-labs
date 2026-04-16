@@ -333,8 +333,10 @@ footer a:hover {
 }
 
 .download-pptx img {
-  width: 22px;
-  height: 22px;
+  width: 22px !important;
+  height: 22px !important;
+  max-width: 22px;
+  display: inline-block;
 }
 
 /* ——— Selection ——— */
