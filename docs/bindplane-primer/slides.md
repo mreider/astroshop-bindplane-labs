@@ -188,11 +188,11 @@ Available as a cloud service at `app.bindplane.com` or self-hosted.
 
 # How Agents Connect: OpAMP
 
-Collectors managed by BindPlane are called **agents**. They connect using **OpAMP** (Open Agent Management Protocol) — an open standard.
+Collectors managed by BindPlane are called **agents**. They connect using **OpAMP** (Open Agent Management Protocol) - an open standard.
 
 - The agent initiates an **outbound WebSocket** to BindPlane
 - BindPlane **never reaches into your network**
-- Works through firewalls — no inbound ports needed
+- Works through firewalls - no inbound ports needed
 
 ```
 wss://app.bindplane.com/v1/opamp
@@ -248,7 +248,7 @@ Apply with `bindplane apply -f bindplane/sources.yaml`
 
 A **destination** defines where telemetry goes. It's BindPlane's abstraction over an OTel exporter.
 
-Our setup has two destinations — and understanding why reveals a key architectural decision.
+Our setup has two destinations - and understanding why reveals a key architectural decision.
 
 | Destination | Type | Purpose |
 |------------|------|---------|
@@ -262,7 +262,7 @@ Our setup has two destinations — and understanding why reveals a key architect
 We could have every agent export directly to Dynatrace.
 
 But that means:
-- API token on **every node** — more secrets to manage
+- API token on **every node** - more secrets to manage
 - Multiple egress points to **monitor and firewall**
 - More connections for the **backend to handle**
 
@@ -276,7 +276,7 @@ This is the **fan-in pattern**.
 
 A **configuration** wires sources to destinations into a pipeline.
 
-It is the unit of deployment — the thing you **version, roll out, and roll back**. Changing a configuration changes what an entire group of collectors does, without touching any of them individually.
+It is the unit of deployment - the thing you **version, roll out, and roll back**. Changing a configuration changes what an entire group of collectors does, without touching any of them individually.
 
 ```yaml
 kind: Configuration
@@ -298,7 +298,7 @@ spec:
 
 If a configuration already has a label selector, why do you need **fleets**?
 
-**Operational visibility.** A fleet gives you a named group you can monitor — agent count, combined throughput, version distribution, health status.
+**Operational visibility.** A fleet gives you a named group you can monitor - agent count, combined throughput, version distribution, health status.
 
 - A **configuration** is the unit of deployment
 - A **fleet** is the unit of operations
@@ -403,7 +403,7 @@ At this point, BindPlane knows **what** to collect. But no agents are running ye
 A Kubernetes **Deployment** that acts as the central routing point.
 
 - Receives OTLP from the app's collector **and** from other agents
-- Exports to Dynatrace — the **only** agent with external credentials
+- Exports to Dynatrace - the **only** agent with external credentials
 - The **only** agent that needs network access outside the cluster
 
 ```
@@ -418,11 +418,11 @@ env:
 
 # The Node Agent
 
-A **DaemonSet** — one pod per node. Collects what the gateway can't see.
+A **DaemonSet** - one pod per node. Collects what the gateway can't see.
 
 | Feature | Why |
 |---------|-----|
-| **DaemonSet** | One per node — access to host filesystem |
+| **DaemonSet** | One per node - access to host filesystem |
 | **hostPort 4317** | Local OTLP endpoint for pods on same node |
 | **/var/log mount** | Read container log files from the host |
 | **→ Gateway** | Forwards to gateway, not directly to backend |
@@ -435,7 +435,7 @@ Deploy: `kubectl apply -f bindplane/k8s-node-agent.yaml`
 
 A single-replica **Deployment** for cluster-wide data.
 
-Kubernetes events (pod scheduled, OOM killed) and cluster metrics are **global** — not per-node. A DaemonSet would collect the same events on every node.
+Kubernetes events (pod scheduled, OOM killed) and cluster metrics are **global** - not per-node. A DaemonSet would collect the same events on every node.
 
 One pod. One copy. No duplication. Forwards to the gateway.
 
@@ -686,7 +686,7 @@ The BindPlane-generated config included a metric (`k8s.pod.volume.usage`) that a
 2. Wire them into **configurations**
 3. Group agents into **fleets**
 4. **Apply** resources, **deploy** agents, **rollout** configs
-5. BindPlane delivers configs via **OpAMP** — agents handle the rest
+5. BindPlane delivers configs via **OpAMP** - agents handle the rest
 
 Everything is a file in a repo. CI/CD follows naturally.
 
@@ -699,7 +699,7 @@ Everything is a file in a repo. CI/CD follows naturally.
 | **GitOps** | Every resource is YAML. Review in PRs, deploy from CI |
 | **Safe rollouts** | Phased delivery with automatic rollback |
 | **Fleet grouping** | New nodes auto-join the right group via labels |
-| **No server to run** | Cloud OpAMP — one WebSocket URL, agents connect out |
+| **No server to run** | Cloud OpAMP - one WebSocket URL, agents connect out |
 | **Fan-in architecture** | One gateway, one egress point, one set of credentials |
 
 ---
