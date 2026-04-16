@@ -83,7 +83,7 @@
   <div class="entry" id="bindplane">
     <div class="entry-head"><span class="entry-num">2.</span> BindPlane</div>
     <p><span class="term">BindPlane</span> is a control plane for OpenTelemetry Collectors. Instead of editing configs on each collector, you define them once in BindPlane and it delivers them remotely. One change propagates to every collector that should receive it.</p>
-    <p>BindPlane is available as a <a href="https://app.bindplane.com" target="_blank" rel="noopener">cloud service</a> or <a href="https://docs.bindplane.com/configuration/bindplane" target="_blank" rel="noopener">self-hosted</a>. This primer uses BindPlane Cloud throughout. The collectors it manages are called <span class="term">agents</span>. They are standard OTel Collectors with an added management protocol.</p>
+    <p>BindPlane is available as a <a href="https://app.bindplane.com" target="_blank" rel="noopener">cloud service</a> or <a href="https://docs.bindplane.com/configuration/bindplane" target="_blank" rel="noopener">self-hosted</a>. This primer uses BindPlane Cloud throughout. The collectors it manages are called <span class="term">agents</span>, but an agent is just an OpenTelemetry Collector. It can be <a href="https://github.com/observIQ/bindplane-otel-collector" target="_blank" rel="noopener">BindPlane&rsquo;s distribution</a> (which includes the OpAMP management protocol) or the community <a href="https://github.com/open-telemetry/opentelemetry-collector-contrib" target="_blank" rel="noopener">contrib Collector</a>. Any OTel Collector that speaks OpAMP can be managed by BindPlane.</p>
     <svg class="ill" viewBox="0 0 320 100" xmlns="http://www.w3.org/2000/svg">
       <style>text { font-family: 'Inter', sans-serif; }</style>
       <rect x="115" y="5" width="90" height="28" rx="3" fill="none" stroke="#444" stroke-width="0.7"/>
@@ -381,7 +381,7 @@ bindplane get fleets</div>
 
   <div class="entry" id="gateway-agent">
     <div class="entry-head"><span class="entry-num">12.</span> The Gateway Agent</div>
-    <p>Up to now, everything we&rsquo;ve applied lives in BindPlane Cloud: definitions of what to collect and where to send it. Now we deploy the actual collectors that do the work. The <span class="term">gateway agent</span> is a Kubernetes <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener">Deployment</a> that acts as the central routing point we designed in <a href="#destinations">entry 6</a>. It receives OTLP from the application&rsquo;s OTel Collector and from other BindPlane agents, then exports everything to the backend. Because it is the only agent with external credentials, it is also the only one that needs network access outside the cluster. Its manifest is <code>bindplane/k8s-gateway-agent.yaml</code>.</p>
+    <p>Up to now, everything we&rsquo;ve applied lives in BindPlane Cloud: definitions of what to collect and where to send it. Now we deploy the actual collectors. Remember, a BindPlane agent is just an OTel Collector. The <span class="term">gateway agent</span> is an OTel Collector running as a Kubernetes <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener">Deployment</a> that acts as the central routing point we designed in <a href="#destinations">entry 6</a>. It receives OTLP from other collectors and exports everything to the backend. Because it is the only collector with external credentials, it is also the only one that needs network access outside the cluster. Its manifest is <code>bindplane/k8s-gateway-agent.yaml</code>.</p>
     <svg class="ill" viewBox="0 0 340 80" xmlns="http://www.w3.org/2000/svg">
       <style>text { font-family: 'Inter', sans-serif; }</style>
       <rect x="5" y="25" width="65" height="28" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
@@ -421,7 +421,7 @@ bindplane get fleets</div>
 
   <div class="entry" id="node-agent">
     <div class="entry-head"><span class="entry-num">13.</span> The Node Agent</div>
-    <p>The gateway handles the outbound connection, but it cannot see what is happening on individual nodes. Container logs live on the host filesystem, and pod-level metrics come from the kubelet. The <span class="term">node agent</span> runs as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/" target="_blank" rel="noopener">DaemonSet</a> so that one instance sits on every node, with access to that node&rsquo;s logs and metrics. It also accepts OTLP from application pods on the same node, giving them a local endpoint instead of routing across the cluster. Everything it collects flows to the gateway, not directly to the backend. Its manifest is <code>bindplane/k8s-node-agent.yaml</code>.</p>
+    <p>The gateway handles the outbound connection, but it cannot see what is happening on individual nodes. Container logs live on the host filesystem, and pod-level metrics come from the kubelet. The <span class="term">node agent</span> is an OTel Collector running as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/" target="_blank" rel="noopener">DaemonSet</a> so that one instance sits on every node, with access to that node&rsquo;s logs and metrics. It also accepts OTLP from application pods on the same node, giving them a local endpoint instead of routing across the cluster. Everything it collects flows to the gateway, not directly to the backend. Its manifest is <code>bindplane/k8s-node-agent.yaml</code>.</p>
     <p>Key differences from the gateway:</p>
     <dl class="defs">
       <dt>DaemonSet</dt><dd>One per node, not a scalable Deployment</dd>
@@ -435,7 +435,7 @@ bindplane get fleets</div>
 
   <div class="entry" id="cluster-agent">
     <div class="entry-head"><span class="entry-num">14.</span> The Cluster Agent</div>
-    <p>Some telemetry is not tied to a specific node. <a href="https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/event-v1/" target="_blank" rel="noopener">Kubernetes events</a> (pod scheduled, image pulled, OOM killed) and cluster-wide metrics (deployment replica counts, node conditions) are global to the cluster. Running a DaemonSet for this data would be wasteful, since every node would collect the same global events. The <span class="term">cluster agent</span> is a single-replica Deployment that collects this cluster-scoped data and forwards it to the gateway. One pod, one copy, no duplication. Its manifest is <code>bindplane/k8s-cluster-agent.yaml</code>.</p>
+    <p>Some telemetry is not tied to a specific node. <a href="https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/event-v1/" target="_blank" rel="noopener">Kubernetes events</a> (pod scheduled, image pulled, OOM killed) and cluster-wide metrics (deployment replica counts, node conditions) are global to the cluster. Running a DaemonSet for this data would be wasteful, since every node would collect the same global events. The <span class="term">cluster agent</span> is an OTel Collector running as a single-replica Deployment that collects this cluster-scoped data and forwards it to the gateway. One pod, one copy, no duplication. Its manifest is <code>bindplane/k8s-cluster-agent.yaml</code>.</p>
     <div class="ex">sources:
   - name: astroshop-k8s-events-source    # Kubernetes events
 destinations:
@@ -638,7 +638,7 @@ kubectl get pods -n astroshop       # should show the demo app</div>
 
   <div class="entry" id="astroshop-values">
     <div class="entry-head"><span class="entry-num">21.</span> The Astroshop Collector</div>
-    <p>The <a href="https://opentelemetry.io/docs/demo/" target="_blank" rel="noopener">Astronomy Shop</a> ships with its own OTel Collector that sends telemetry to Jaeger, Prometheus, and OpenSearch. We add a second exporter in <code>astroshop-values.yaml</code> that forwards a copy of everything to the BindPlane gateway agent.</p>
+    <p>The <a href="https://opentelemetry.io/docs/demo/" target="_blank" rel="noopener">Astronomy Shop</a> ships with its own OTel Collector that sends telemetry to Jaeger, Prometheus, and OpenSearch. Since any OTel Collector can be a BindPlane agent, you could replace this collector with a BindPlane-managed one and control its entire pipeline remotely. For this primer, we take a lighter approach: keep the existing collector and add a second exporter in <code>astroshop-values.yaml</code> that forwards a copy of everything to the BindPlane gateway.</p>
     <div class="ex"># astroshop-values.yaml (Helm values override)
 opentelemetry-collector:
   enabled: true
