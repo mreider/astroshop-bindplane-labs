@@ -7,7 +7,7 @@
   <meta name="description" content="A progressive primer on BindPlane concepts, building from first principles. Learn to manage OpenTelemetry Collectors at scale.">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="otel-logo.png" type="image/png">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -20,24 +20,27 @@
       <li><a href="#collector-problem"><span class="num">1</span> The Collector Management Problem</a></li>
       <li><a href="#bindplane"><span class="num">2</span> BindPlane</a></li>
       <li><a href="#opamp"><span class="num">3</span> OpAMP</a></li>
-      <li><a href="#sources"><span class="num">4</span> Sources</a></li>
-      <li><a href="#destinations"><span class="num">5</span> Destinations</a></li>
-      <li><a href="#configurations"><span class="num">6</span> Configurations</a></li>
-      <li><a href="#fleets"><span class="num">7</span> Fleets</a></li>
-      <li><a href="#cli"><span class="num">8</span> The CLI</a></li>
-      <li><a href="#rollouts"><span class="num">9</span> Rollouts</a></li>
-      <li><a href="#gateway-agent"><span class="num">10</span> The Gateway Agent</a></li>
-      <li><a href="#node-agent"><span class="num">11</span> The Node Agent</a></li>
-      <li><a href="#cluster-agent"><span class="num">12</span> The Cluster Agent</a></li>
-      <li><a href="#full-architecture"><span class="num">13</span> The Full Architecture</a></li>
-      <li><a href="#init-container"><span class="num">14</span> The Init Container Pattern</a></li>
-      <li><a href="#opamp-labels"><span class="num">15</span> OPAMP_LABELS</a></li>
-      <li><a href="#manifest-gap"><span class="num">16</span> The Manifest Gap</a></li>
-      <li><a href="#deploy-script"><span class="num">17</span> The Deploy Script</a></li>
-      <li><a href="#astroshop-values"><span class="num">18</span> The Astroshop Collector</a></li>
-      <li><a href="#debugging"><span class="num">19</span> Debugging a Failed Rollout</a></li>
-      <li><a href="#what-worked"><span class="num">20</span> What Worked Well</a></li>
-      <li><a href="#doc-gaps"><span class="num">21</span> Documentation Gaps</a></li>
+      <li><a href="#prerequisites"><span class="num">4</span> What You&rsquo;ll Need</a></li>
+      <li><a href="#sources"><span class="num">5</span> Sources</a></li>
+      <li><a href="#destinations"><span class="num">6</span> Destinations</a></li>
+      <li><a href="#configurations"><span class="num">7</span> Configurations</a></li>
+      <li><a href="#fleets"><span class="num">8</span> Fleets</a></li>
+      <li><a href="#repo"><span class="num">9</span> The Repository</a></li>
+      <li><a href="#dependency-order"><span class="num">10</span> The Dependency Chain</a></li>
+      <li><a href="#applying"><span class="num">11</span> Applying Resources</a></li>
+      <li><a href="#rollouts"><span class="num">12</span> Rollouts</a></li>
+      <li><a href="#gateway-agent"><span class="num">13</span> The Gateway Agent</a></li>
+      <li><a href="#node-agent"><span class="num">14</span> The Node Agent</a></li>
+      <li><a href="#cluster-agent"><span class="num">15</span> The Cluster Agent</a></li>
+      <li><a href="#full-architecture"><span class="num">16</span> The Full Architecture</a></li>
+      <li><a href="#init-container"><span class="num">17</span> The Init Container Pattern</a></li>
+      <li><a href="#opamp-labels"><span class="num">18</span> OPAMP_LABELS</a></li>
+      <li><a href="#manifest-gap"><span class="num">19</span> The Manifest Gap</a></li>
+      <li><a href="#deploy-sequence"><span class="num">20</span> The Full Deploy Sequence</a></li>
+      <li><a href="#astroshop-values"><span class="num">21</span> The Astroshop Collector</a></li>
+      <li><a href="#debugging"><span class="num">22</span> Debugging a Failed Rollout</a></li>
+      <li><a href="#what-worked"><span class="num">23</span> What Worked Well</a></li>
+      <li><a href="#doc-gaps"><span class="num">24</span> Documentation Gaps</a></li>
     </ol>
   </nav>
 
@@ -129,12 +132,35 @@
     </svg>
   </div>
 
+  <div class="entry" id="prerequisites">
+    <div class="entry-head"><span class="entry-num">4.</span> What You&rsquo;ll Need</div>
+    <p>Before building, you need four things: a BindPlane account, a Kubernetes cluster, a telemetry backend, and the CLI tools to talk to all of them.</p>
+    <dl class="defs">
+      <dt>BindPlane Cloud</dt><dd><a href="https://app.bindplane.com" target="_blank" rel="noopener">Sign up</a> and generate an <a href="https://docs.bindplane.com/cli-and-api/api-keys" target="_blank" rel="noopener">API key</a>. You also need the <span class="term">secret key</span> for agent authentication (find it via <code>bindplane secret get</code>).</dd>
+      <dt>Kubernetes cluster</dt><dd>Any cluster works. We use <a href="https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview" target="_blank" rel="noopener">GKE Autopilot</a>. You need <code>kubectl</code> configured to reach it.</dd>
+      <dt>Telemetry backend</dt><dd>Where your data ultimately lands. We use <a href="https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/getting-started/otlp-export" target="_blank" rel="noopener">Dynatrace</a>, but any OTLP-compatible backend works.</dd>
+      <dt>CLI tools</dt><dd><code>bindplane</code> (<a href="https://docs.bindplane.com/cli-and-api/cli/installation" target="_blank" rel="noopener">install</a>), <code>kubectl</code>, <code>helm</code>, and optionally <code>gcloud</code> if using GKE.</dd>
+    </dl>
+    <p>Collect your credentials into a <code>.env</code> file. The primer&rsquo;s <a href="https://github.com/mreider/astroshop-bindplane-labs/blob/main/.env.example" target="_blank" rel="noopener">repository</a> includes a template:</p>
+    <div class="ex"># .env.example
+BINDPLANE_API_KEY=bp_XXXXX
+BINDPLANE_REMOTE_URL=https://app.bindplane.com
+BINDPLANE_SECRET_KEY=XXXXX
+
+DT_ENDPOINT=https://YOUR_ENV.dynatrace.com/api/v2/otlp
+DT_API_TOKEN=dt0c01.XXXXX
+
+GCP_PROJECT=your-project
+GKE_CLUSTER=astroshop-bp
+GKE_REGION=us-central1</div>
+  </div>
+
   <!-- ——————————————————————————— -->
   <div class="phase">The Building Blocks</div>
   <!-- ——————————————————————————— -->
 
   <div class="entry" id="sources">
-    <div class="entry-head"><span class="entry-num">4.</span> Sources</div>
+    <div class="entry-head"><span class="entry-num">5.</span> Sources</div>
     <p>A <span class="term">source</span> tells a collector where telemetry comes from. It is BindPlane&rsquo;s abstraction over an OTel <a href="https://opentelemetry.io/docs/collector/configuration/#receivers" target="_blank" rel="noopener">receiver</a>. Each source has a <span class="term">type</span> and parameters. You create it as a YAML resource and apply it to BindPlane.</p>
     <p>For the Astronomy Shop, we use five source types:</p>
     <dl class="defs">
@@ -144,7 +170,7 @@
       <dt><code>k8s_cluster</code></dt><dd>Collects cluster-wide metrics (deployments, nodes, replicas)</dd>
       <dt><code>k8s_events</code></dt><dd>Collects <a href="https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/event-v1/" target="_blank" rel="noopener">Kubernetes event</a> objects</dd>
     </dl>
-    <p>Here is the OTLP source definition:</p>
+    <p>Here is the OTLP source definition. This lives in <code>bindplane/sources.yaml</code>:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Source
 metadata:
@@ -160,13 +186,13 @@ spec:
       value: 4317
     - name: http_port
       value: 4318</div>
-    <p class="note">Note: The CLI type names (<code>k8s_container</code>, <code>k8s_kubelet</code>) do not appear in the BindPlane <a href="https://docs.bindplane.com/integrations/sources" target="_blank" rel="noopener">documentation</a> or UI. The docs use display names like &ldquo;Kubernetes Container Logs.&rdquo; We found the CLI names by running <code>bindplane get source-types</code> and matching by keyword. There is no mapping between display names and type names in the docs.</p>
+    <p class="note">Note: The CLI type names (<code>k8s_container</code>, <code>k8s_kubelet</code>) do not appear in the BindPlane <a href="https://docs.bindplane.com/integrations/sources" target="_blank" rel="noopener">documentation</a> or UI. The docs use display names like &ldquo;Kubernetes Container Logs.&rdquo; We found the CLI names by running <code>bindplane get source-types</code> and matching by keyword.</p>
   </div>
 
   <div class="entry" id="destinations">
-    <div class="entry-head"><span class="entry-num">5.</span> Destinations</div>
-    <p>A <span class="term">destination</span> tells a collector where telemetry goes. It is BindPlane&rsquo;s abstraction over an OTel <a href="https://opentelemetry.io/docs/collector/configuration/#exporters" target="_blank" rel="noopener">exporter</a>. Our setup has two:</p>
-    <p>The final backend &mdash; <a href="https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/getting-started/otlp-export" target="_blank" rel="noopener">Dynatrace</a>, receiving traces, metrics, and logs:</p>
+    <div class="entry-head"><span class="entry-num">6.</span> Destinations</div>
+    <p>A <span class="term">destination</span> tells a collector where telemetry goes. It is BindPlane&rsquo;s abstraction over an OTel <a href="https://opentelemetry.io/docs/collector/configuration/#exporters" target="_blank" rel="noopener">exporter</a>. Our setup needs two, stored in separate files.</p>
+    <p>The final backend in <code>bindplane/gateway-destination.yaml</code> &mdash; <a href="https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/getting-started/otlp-export" target="_blank" rel="noopener">Dynatrace</a>, receiving traces, metrics, and logs:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Destination
 metadata:
@@ -182,7 +208,7 @@ spec:
       value: https://your-env.dynatrace.com/api/v2/otlp
     - name: dynatrace_api_token
       value: "${DT_API_TOKEN}"</div>
-    <p>And an internal routing destination that forwards to the gateway agent within the cluster:</p>
+    <p>And an internal routing destination in <code>bindplane/gateway-to-bindplane-destination.yaml</code> that forwards to the gateway agent within the cluster:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Destination
 metadata:
@@ -198,8 +224,8 @@ spec:
   </div>
 
   <div class="entry" id="configurations">
-    <div class="entry-head"><span class="entry-num">6.</span> Configurations</div>
-    <p>A <span class="term">configuration</span> wires sources to destinations for a group of agents. It is the unit of deployment in BindPlane &mdash; the thing you roll out, version, and roll back.</p>
+    <div class="entry-head"><span class="entry-num">7.</span> Configurations</div>
+    <p>A <span class="term">configuration</span> wires sources to destinations for a group of agents. It is the unit of deployment in BindPlane &mdash; the thing you roll out, version, and roll back. This is <code>bindplane/gateway-config.yaml</code>:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Configuration
 metadata:
@@ -216,14 +242,14 @@ spec:
   selector:
     matchLabels:
       configuration: astroshop-gateway</div>
-    <p>The <code>selector.matchLabels</code> field determines which agents receive this configuration. An agent whose labels include <code>configuration=astroshop-gateway</code> will be matched. The <code>measurementInterval</code> controls how often the collector reports its own internal throughput metrics to BindPlane.</p>
+    <p>The <code>selector.matchLabels</code> field determines which agents receive this configuration. An agent whose labels include <code>configuration=astroshop-gateway</code> will be matched. Note that this configuration <em>references</em> the source and destination by the names we defined in entries <a href="#sources">5</a> and <a href="#destinations">6</a> &mdash; those resources must exist before this one can be applied.</p>
     <img class="screenshot" src="screenshots/config-gateway.png" alt="Gateway configuration in the BindPlane UI showing the OTLP source connected to the Dynatrace destination">
-    <p class="note">Note: The Configuration YAML schema is not documented for CLI or GitOps use. We discovered through trial and error that <code>platform</code> belongs under <code>metadata.labels</code>, not as a spec field; that <code>measurementInterval</code> only accepts <code>10s</code>, <code>1m</code>, <code>15m</code>, or <code>off</code>; and that sources can be defined inline or as separate resources referenced by name. The <a href="https://docs.bindplane.com/cli-and-api" target="_blank" rel="noopener">CLI documentation</a> lists commands but contains no YAML examples for any resource type.</p>
+    <p class="note">Note: The Configuration YAML schema is not documented for CLI use. We discovered through trial and error that <code>platform</code> belongs under <code>metadata.labels</code>, not as a spec field; that <code>measurementInterval</code> only accepts <code>10s</code>, <code>1m</code>, <code>15m</code>, or <code>off</code>; and that sources can be defined inline or by reference. The <a href="https://docs.bindplane.com/cli-and-api" target="_blank" rel="noopener">CLI documentation</a> lists commands but contains no YAML examples.</p>
   </div>
 
   <div class="entry" id="fleets">
-    <div class="entry-head"><span class="entry-num">7.</span> Fleets</div>
-    <p>A <span class="term">fleet</span> groups agents that share a purpose and assigns them a single configuration. Agents in a fleet all receive the same config. You might have a fleet for gateway agents, another for node agents, and a third for cluster agents. See the <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/fleets" target="_blank" rel="noopener">fleet documentation</a> for more.</p>
+    <div class="entry-head"><span class="entry-num">8.</span> Fleets</div>
+    <p>A <span class="term">fleet</span> groups agents that share a purpose and assigns them a single configuration. Agents in a fleet all receive the same config. Our three fleets live in <code>bindplane/fleets.yaml</code>. Here is the gateway fleet:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Fleet
 metadata:
@@ -238,36 +264,119 @@ spec:
 selector:
   matchLabels:
     configuration: astroshop-gateway</div>
-    <p>The <code>spec.configuration</code> field links the fleet to its configuration. The <code>selector.matchLabels</code> determines which agents are automatically added to the fleet. When an agent connects with matching labels, it joins the fleet and receives the configuration.</p>
+    <p>The <code>spec.configuration</code> field links the fleet to its configuration &mdash; the one from <a href="#configurations">entry 7</a>. The <code>selector.matchLabels</code> determines which agents are automatically added to the fleet. This creates a chain: an agent&rsquo;s labels match a fleet, the fleet assigns a configuration, and the configuration wires sources to destinations.</p>
     <img class="screenshot" src="screenshots/fleets.png" alt="Fleet list in the BindPlane UI showing three fleets with agent counts and throughput">
   </div>
 
   <!-- ——————————————————————————— -->
-  <div class="phase">Applying It</div>
+  <div class="phase">The Project</div>
   <!-- ——————————————————————————— -->
 
-  <div class="entry" id="cli">
-    <div class="entry-head"><span class="entry-num">8.</span> The CLI</div>
-    <p>The <span class="term">bindplane</span> <a href="https://docs.bindplane.com/cli-and-api/cli" target="_blank" rel="noopener">CLI</a> is how you manage resources from the terminal. Authenticate it with your <a href="https://docs.bindplane.com/cli-and-api/api-keys" target="_blank" rel="noopener">API key</a>, then apply YAML files the same way you would with <code>kubectl</code>.</p>
-    <div class="ex">bindplane profile set default \
+  <div class="entry" id="repo">
+    <div class="entry-head"><span class="entry-num">9.</span> The Repository</div>
+    <p>Everything in this primer is backed by a <a href="https://github.com/mreider/astroshop-bindplane-labs" target="_blank" rel="noopener">Git repository</a>. The files fall into three categories: BindPlane resource definitions (what to collect and where to send it), Kubernetes manifests (how to run the collectors), and operational scripts (how to deploy and tear down the whole stack).</p>
+    <div class="ex">astroshop-bindplane-labs/
+├── .env.example                  # credentials template
+├── astroshop-values.yaml         # Helm values for the demo app
+│
+├── bindplane/                    # BindPlane resource definitions
+│   ├── sources.yaml              #   5 source resources
+│   ├── gateway-destination.yaml  #   Dynatrace export destination
+│   ├── gateway-to-bindplane-destination.yaml  # internal gateway dest
+│   ├── gateway-config.yaml       #   configuration: OTLP → Dynatrace
+│   ├── node-config.yaml          #   configuration: logs + OTLP → gateway
+│   ├── cluster-config.yaml       #   configuration: events → gateway
+│   ├── fleets.yaml               #   3 fleet resources
+│   ├── k8s-gateway-agent.yaml    #   k8s Deployment + Services + RBAC
+│   ├── k8s-node-agent.yaml       #   k8s DaemonSet + Service
+│   └── k8s-cluster-agent.yaml    #   k8s Deployment
+│
+├── scripts/
+│   ├── deploy.sh                 # full deploy sequence
+│   └── teardown.sh               # clean removal
+│
+└── .github/workflows/
+    └── deploy.yml                # GitHub Actions CI/CD</div>
+    <p>The <code>bindplane/</code> directory contains two kinds of files that look similar but serve different systems. Files like <code>sources.yaml</code> and <code>gateway-config.yaml</code> are <em>BindPlane resources</em> &mdash; applied via <code>bindplane apply</code> to the BindPlane control plane. Files like <code>k8s-gateway-agent.yaml</code> are <em>Kubernetes manifests</em> &mdash; applied via <code>kubectl apply</code> to the cluster. Understanding which file goes where is essential.</p>
+  </div>
+
+  <div class="entry" id="dependency-order">
+    <div class="entry-head"><span class="entry-num">10.</span> The Dependency Chain</div>
+    <p>These files cannot be applied in any order. Each resource references others by name, creating a dependency chain. If you apply a configuration before its sources exist, BindPlane rejects it. If you start a rollout before agents connect, there is nothing to roll out to.</p>
+    <svg class="ill" viewBox="0 0 340 130" xmlns="http://www.w3.org/2000/svg">
+      <style>text { font-family: 'Inter', sans-serif; }</style>
+      <!-- Layer 1: Sources + Destinations -->
+      <rect x="15" y="8" width="75" height="22" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
+      <text x="52" y="22" text-anchor="middle" font-size="7" fill="#444">sources.yaml</text>
+      <rect x="110" y="8" width="120" height="22" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
+      <text x="170" y="22" text-anchor="middle" font-size="7" fill="#444">*-destination.yaml</text>
+      <text x="310" y="22" text-anchor="middle" font-size="6.5" fill="#999">bindplane apply</text>
+      <!-- arrows down -->
+      <line x1="52" y1="30" x2="100" y2="48" stroke="#444" stroke-width="0.4"/>
+      <line x1="170" y1="30" x2="140" y2="48" stroke="#444" stroke-width="0.4"/>
+      <polygon points="98,46 103,50 100,44" fill="#444"/>
+      <!-- Layer 2: Configurations -->
+      <rect x="60" y="48" width="100" height="22" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
+      <text x="110" y="62" text-anchor="middle" font-size="7" fill="#444">*-config.yaml</text>
+      <text x="310" y="62" text-anchor="middle" font-size="6.5" fill="#999">bindplane apply</text>
+      <!-- arrow down -->
+      <line x1="110" y1="70" x2="110" y2="86" stroke="#444" stroke-width="0.4"/>
+      <polygon points="108,84 110,89 112,84" fill="#444"/>
+      <!-- Layer 3: Fleets -->
+      <rect x="67" y="88" width="85" height="22" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
+      <text x="110" y="102" text-anchor="middle" font-size="7" fill="#444">fleets.yaml</text>
+      <text x="310" y="102" text-anchor="middle" font-size="6.5" fill="#999">bindplane apply</text>
+      <!-- divider -->
+      <line x1="0" y1="118" x2="280" y2="118" stroke="#ddd" stroke-width="0.3" stroke-dasharray="4 2"/>
+      <!-- Layer 4: K8s manifests -->
+      <text x="60" y="128" text-anchor="middle" font-size="6.5" fill="#444">k8s-*-agent.yaml</text>
+      <text x="310" y="128" text-anchor="middle" font-size="6.5" fill="#1496ff">kubectl apply</text>
+      <!-- label -->
+      <text x="190" y="128" text-anchor="middle" font-size="6" fill="#999">then rollout start</text>
+    </svg>
+    <p>The order is: <strong>sources and destinations first</strong> (they have no dependencies), then <strong>configurations</strong> (they reference sources and destinations by name), then <strong>fleets</strong> (they reference configurations), then <strong>Kubernetes manifests</strong> (the agents that will connect and receive configs), and finally <strong>rollouts</strong> (which push the configs to the now-connected agents).</p>
+    <p>This ordering is not enforced by the tool &mdash; you simply get errors if you try to apply things out of order. The deploy script in <a href="#deploy-sequence">entry 20</a> codifies the correct sequence.</p>
+  </div>
+
+  <div class="entry" id="applying">
+    <div class="entry-head"><span class="entry-num">11.</span> Applying Resources</div>
+    <p>The <span class="term">bindplane</span> <a href="https://docs.bindplane.com/cli-and-api/cli" target="_blank" rel="noopener">CLI</a> applies BindPlane resources. Authenticate with your <a href="https://docs.bindplane.com/cli-and-api/api-keys" target="_blank" rel="noopener">API key</a>, then apply files in dependency order. After each step, verify the resource exists.</p>
+    <div class="ex"># Authenticate
+bindplane profile set default \
   --api-key $BINDPLANE_API_KEY \
   --remote-url https://app.bindplane.com
 
-bindplane apply -f sources.yaml
-bindplane apply -f gateway-destination.yaml
-bindplane apply -f gateway-config.yaml
-bindplane apply -f fleets.yaml</div>
+# Step 1: Sources and destinations (no dependencies)
+bindplane apply -f bindplane/sources.yaml
+bindplane apply -f bindplane/gateway-destination.yaml
+bindplane apply -f bindplane/gateway-to-bindplane-destination.yaml
+
+# Verify
+bindplane get sources
+bindplane get destinations
+
+# Step 2: Configurations (reference sources + destinations)
+bindplane apply -f bindplane/gateway-config.yaml
+bindplane apply -f bindplane/node-config.yaml
+bindplane apply -f bindplane/cluster-config.yaml
+
+# Step 3: Fleets (reference configurations)
+bindplane apply -f bindplane/fleets.yaml
+
+# Verify everything
+bindplane get configurations
+bindplane get fleets</div>
     <p>Every CLI command maps to a <a href="https://docs.bindplane.com/cli-and-api" target="_blank" rel="noopener">REST API</a> call. The equivalent of <code>bindplane apply</code> using curl:</p>
     <div class="ex">curl -X POST https://app.bindplane.com/v1/apply \
   -H "X-Bindplane-Api-Key: $BINDPLANE_API_KEY" \
   -H "Content-Type: application/yaml" \
-  --data-binary @sources.yaml</div>
-    <p>Other useful commands: <code>bindplane get agents</code> lists connected agents. <code>bindplane get configurations</code> lists configs. <code>bindplane get source-types</code> lists available source types with their CLI names.</p>
+  --data-binary @bindplane/sources.yaml</div>
+    <p>At this point, BindPlane knows <em>what</em> to collect and <em>where</em> to send it. But no agents are running yet &mdash; nothing is actually collecting data. The next entries deploy the agents.</p>
   </div>
 
   <div class="entry" id="rollouts">
-    <div class="entry-head"><span class="entry-num">9.</span> Rollouts</div>
-    <p>Applying a configuration makes it available. A <span class="term">rollout</span> pushes it to agents. Rollouts are phased: BindPlane starts with a small batch, watches for errors, and expands. If an agent rejects the config, the rollout pauses and the agent rolls back to its previous config. See the <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/rollouts" target="_blank" rel="noopener">rollout documentation</a> for details.</p>
+    <div class="entry-head"><span class="entry-num">12.</span> Rollouts</div>
+    <p>After agents connect (entries <a href="#gateway-agent">13</a>&ndash;<a href="#cluster-agent">15</a>), a <span class="term">rollout</span> pushes the configuration to them. Rollouts are phased: BindPlane starts with a small batch, watches for errors, and expands. If an agent rejects the config, the rollout pauses and the agent rolls back to its previous config.</p>
     <div class="ex">$ bindplane rollout start astroshop-gateway
 
 NAME                STATUS   PHASE  COMPLETED  ERRORS  PENDING
@@ -277,7 +386,8 @@ $ bindplane rollout status astroshop-gateway
 
 NAME                STATUS   PHASE  COMPLETED  ERRORS  PENDING
 astroshop-gateway:3 Stable   1      2          0       0</div>
-    <p class="note">Note: When a rollout fails, <code>bindplane rollout status</code> shows &ldquo;Error&rdquo; with a count but not the actual error message. The <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/rollouts" target="_blank" rel="noopener">rollout docs</a> describe error diagnosis exclusively through the UI. We had to use <code>kubectl logs</code> on the agent pod to find the actual config rejection reason. See <a href="#debugging">entry 19</a> for the full debugging story.</p>
+    <p>A status of <code>Stable</code> means every agent accepted the config. <code>Error</code> means at least one agent rejected it. See the <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/rollouts" target="_blank" rel="noopener">rollout documentation</a> for the full lifecycle.</p>
+    <p class="note">Note: When a rollout fails, <code>bindplane rollout status</code> shows &ldquo;Error&rdquo; with a count but not the actual error message. The <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/rollouts" target="_blank" rel="noopener">rollout docs</a> describe error diagnosis exclusively through the UI. We had to use <code>kubectl logs</code> on the agent pod to find the actual config rejection reason. See <a href="#debugging">entry 22</a> for the full debugging story.</p>
   </div>
 
   <!-- ——————————————————————————— -->
@@ -285,8 +395,8 @@ astroshop-gateway:3 Stable   1      2          0       0</div>
   <!-- ——————————————————————————— -->
 
   <div class="entry" id="gateway-agent">
-    <div class="entry-head"><span class="entry-num">10.</span> The Gateway Agent</div>
-    <p>The <span class="term">gateway agent</span> is a Kubernetes <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener">Deployment</a> that acts as a central routing point. It receives OTLP from the application&rsquo;s OTel Collector and from other BindPlane agents, then exports everything to the backend. Only the gateway needs external credentials.</p>
+    <div class="entry-head"><span class="entry-num">13.</span> The Gateway Agent</div>
+    <p>The <span class="term">gateway agent</span> is a Kubernetes <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener">Deployment</a> that acts as a central routing point. It receives OTLP from the application&rsquo;s OTel Collector and from other BindPlane agents, then exports everything to the backend. Only the gateway needs external credentials. Its manifest is <code>bindplane/k8s-gateway-agent.yaml</code>.</p>
     <svg class="ill" viewBox="0 0 340 80" xmlns="http://www.w3.org/2000/svg">
       <style>text { font-family: 'Inter', sans-serif; }</style>
       <rect x="5" y="25" width="65" height="28" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
@@ -307,7 +417,7 @@ astroshop-gateway:3 Stable   1      2          0       0</div>
       <text x="145" y="6" text-anchor="middle" font-size="5.5" fill="#777">OpAMP</text>
       <text x="170" y="72" text-anchor="middle" font-size="7" fill="#555">only the gateway talks to the backend</text>
     </svg>
-    <p>The key environment variables in the Deployment manifest:</p>
+    <p>The key environment variables that connect the agent to BindPlane and assign it to the right fleet:</p>
     <div class="ex">env:
   - name: OPAMP_ENDPOINT
     value: wss://app.bindplane.com/v1/opamp
@@ -320,12 +430,13 @@ astroshop-gateway:3 Stable   1      2          0       0</div>
     value: "configuration=astroshop-gateway,fleet=astroshop-gateway-fleet"
   - name: MANAGER_YAML_PATH
     value: /etc/otel/storage/manager.yaml</div>
+    <p>Deploy it with <code>kubectl apply -f bindplane/k8s-gateway-agent.yaml</code>. The agent starts, connects to BindPlane via OpAMP, and waits for its configuration. After you run <code>bindplane rollout start astroshop-gateway</code>, it receives the pipeline and begins collecting.</p>
     <img class="screenshot" src="screenshots/config-gateway.png" alt="Gateway configuration detail showing OTLP source flowing through processors to Dynatrace destination">
   </div>
 
   <div class="entry" id="node-agent">
-    <div class="entry-head"><span class="entry-num">11.</span> The Node Agent</div>
-    <p>The <span class="term">node agent</span> runs as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/" target="_blank" rel="noopener">DaemonSet</a> &mdash; one pod per node. It collects container logs from the host and receives OTLP from application pods on the same node. It forwards everything to the gateway agent, not directly to the backend.</p>
+    <div class="entry-head"><span class="entry-num">14.</span> The Node Agent</div>
+    <p>The <span class="term">node agent</span> runs as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/" target="_blank" rel="noopener">DaemonSet</a> &mdash; one pod per node. It collects container logs from the host and receives OTLP from application pods on the same node. It forwards everything to the gateway agent, not directly to the backend. Its manifest is <code>bindplane/k8s-node-agent.yaml</code>.</p>
     <p>Key differences from the gateway:</p>
     <dl class="defs">
       <dt>DaemonSet</dt><dd>One per node, not a scalable Deployment</dd>
@@ -333,21 +444,23 @@ astroshop-gateway:3 Stable   1      2          0       0</div>
       <dt><code>/var/log</code> mount</dt><dd>Read-only host volume for container log files</dd>
       <dt>Destination</dt><dd>Forwards to <code>bindplane_gateway</code>, not <code>dynatrace_otlp</code></dd>
     </dl>
+    <p>Deploy with <code>kubectl apply -f bindplane/k8s-node-agent.yaml</code>, then <code>bindplane rollout start astroshop-node</code>.</p>
     <img class="screenshot" src="screenshots/config-node.png" alt="Node configuration showing container source and OTLP source forwarding to the gateway">
   </div>
 
   <div class="entry" id="cluster-agent">
-    <div class="entry-head"><span class="entry-num">12.</span> The Cluster Agent</div>
-    <p>The <span class="term">cluster agent</span> is a single-replica Deployment that collects cluster-wide data &mdash; <a href="https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/event-v1/" target="_blank" rel="noopener">Kubernetes events</a>, cluster metrics. Only one is needed because this data is global, not per-node. Like the node agent, it forwards to the gateway.</p>
+    <div class="entry-head"><span class="entry-num">15.</span> The Cluster Agent</div>
+    <p>The <span class="term">cluster agent</span> is a single-replica Deployment that collects cluster-wide data &mdash; <a href="https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/event-v1/" target="_blank" rel="noopener">Kubernetes events</a>, cluster metrics. Only one is needed because this data is global, not per-node. Like the node agent, it forwards to the gateway. Its manifest is <code>bindplane/k8s-cluster-agent.yaml</code>.</p>
     <div class="ex">sources:
   - name: astroshop-k8s-events-source    # Kubernetes events
 destinations:
   - name: astroshop-gateway              # forward to gateway</div>
+    <p>Deploy with <code>kubectl apply -f bindplane/k8s-cluster-agent.yaml</code>, then <code>bindplane rollout start astroshop-cluster</code>.</p>
     <img class="screenshot" src="screenshots/config-cluster.png" alt="Cluster configuration with Kubernetes events source forwarding to gateway">
   </div>
 
   <div class="entry" id="full-architecture">
-    <div class="entry-head"><span class="entry-num">13.</span> The Full Architecture</div>
+    <div class="entry-head"><span class="entry-num">16.</span> The Full Architecture</div>
     <p>All three agent types compose into a single architecture. Application telemetry flows through the OTel Collector and gateway to Dynatrace. Infrastructure telemetry (logs, events, metrics) flows through node and cluster agents to the same gateway. BindPlane Cloud manages all agents remotely via <a href="https://opentelemetry.io/docs/specs/opamp/" target="_blank" rel="noopener">OpAMP</a>.</p>
     <svg class="ill" viewBox="0 0 340 145" xmlns="http://www.w3.org/2000/svg">
       <style>text { font-family: 'Inter', sans-serif; }</style>
@@ -390,7 +503,7 @@ destinations:
   <!-- ——————————————————————————— -->
 
   <div class="entry" id="init-container">
-    <div class="entry-head"><span class="entry-num">14.</span> The Init Container Pattern</div>
+    <div class="entry-head"><span class="entry-num">17.</span> The Init Container Pattern</div>
     <p>The agent container runs with <code>readOnlyRootFilesystem: true</code> for security. But it needs writable files: a bootstrap <code>config.yaml</code> to start with before BindPlane sends the real config, a <code>logging.yaml</code>, and a <code>manager.yaml</code> for the <a href="https://opentelemetry.io/docs/specs/opamp/" target="_blank" rel="noopener">OpAMP</a> connection state. An <a href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/" target="_blank" rel="noopener">init container</a> writes these into an <a href="https://kubernetes.io/docs/concepts/storage/volumes/#emptydir" target="_blank" rel="noopener">emptyDir</a> volume.</p>
     <div class="ex">initContainers:
   - name: setup-volumes
@@ -424,13 +537,13 @@ destinations:
   </div>
 
   <div class="entry" id="opamp-labels">
-    <div class="entry-head"><span class="entry-num">15.</span> OPAMP_LABELS</div>
+    <div class="entry-head"><span class="entry-num">18.</span> OPAMP_LABELS</div>
     <p>When an agent connects to BindPlane, it reports its labels. These labels are how BindPlane matches the agent to a configuration and a fleet. You set them in the <code>OPAMP_LABELS</code> environment variable as a comma-separated list.</p>
     <div class="ex"># In the Kubernetes manifest:
 env:
   - name: OPAMP_LABELS
     value: "configuration=astroshop-gateway,fleet=astroshop-gateway-fleet"</div>
-    <p>The <code>configuration=</code> label matches the Configuration&rsquo;s <code>selector.matchLabels</code>. The <code>fleet=</code> label matches the Fleet&rsquo;s <code>selector.matchLabels</code>. When the agent starts, BindPlane sees both labels, assigns the agent to the fleet, and pushes the configuration &mdash; automatically, with no manual step.</p>
+    <p>The <code>configuration=</code> label matches the Configuration&rsquo;s <code>selector.matchLabels</code> from <a href="#configurations">entry 7</a>. The <code>fleet=</code> label matches the Fleet&rsquo;s <code>selector.matchLabels</code> from <a href="#fleets">entry 8</a>. When the agent starts, BindPlane sees both labels, assigns the agent to the fleet, and pushes the configuration &mdash; automatically, with no manual step.</p>
     <svg class="ill" viewBox="0 0 320 60" xmlns="http://www.w3.org/2000/svg">
       <style>text { font-family: 'Inter', sans-serif; }</style>
       <rect x="5" y="18" width="80" height="24" rx="3" fill="#f0f4f8" stroke="#444" stroke-width="0.5"/>
@@ -447,12 +560,12 @@ env:
       <rect x="215" y="18" width="95" height="24" rx="3" fill="none" stroke="#444" stroke-width="0.5"/>
       <text x="262" y="34" text-anchor="middle" font-size="6.5" fill="#444">configuration</text>
     </svg>
-    <p class="note">Note: Fleet auto-assignment via <code>OPAMP_LABELS</code> is not in the <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/fleets" target="_blank" rel="noopener">fleet documentation</a>. The docs describe three assignment methods: UI, install-time UI, and <code>bindplane label agent</code> CLI. The pattern of setting <code>fleet=&lt;name&gt;</code> in the Kubernetes manifest for automatic assignment at pod startup is undocumented. It is arguably the primary fleet workflow for Kubernetes users.</p>
+    <p class="note">Note: Fleet auto-assignment via <code>OPAMP_LABELS</code> is not in the <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/fleets" target="_blank" rel="noopener">fleet documentation</a>. The docs describe three assignment methods: UI, install-time UI, and <code>bindplane label agent</code> CLI. The pattern of setting <code>fleet=&lt;name&gt;</code> in the Kubernetes manifest for automatic assignment at pod startup is undocumented.</p>
   </div>
 
   <div class="entry" id="manifest-gap">
-    <div class="entry-head"><span class="entry-num">16.</span> The Manifest Gap</div>
-    <p>BindPlane manages what the collector <em>does</em> (its pipeline configuration). You must manage <em>how it runs</em> (the Kubernetes manifest) yourself. The manifest includes:</p>
+    <div class="entry-head"><span class="entry-num">19.</span> The Manifest Gap</div>
+    <p>BindPlane manages what the collector <em>does</em> (its pipeline configuration). You must manage <em>how it runs</em> (the Kubernetes manifest) yourself. The <code>k8s-*-agent.yaml</code> files in our repo include:</p>
     <dl class="defs">
       <dt><a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" rel="noopener">RBAC</a></dt><dd>A ClusterRole granting read access to pods, nodes, services, events, deployments</dd>
       <dt><a href="https://kubernetes.io/docs/concepts/services-networking/service/" target="_blank" rel="noopener">Services</a></dt><dd>A ClusterIP service exposing OTLP ports (4317, 4318) for the gateway</dd>
@@ -478,46 +591,53 @@ rules:
   <div class="phase">Operating the System</div>
   <!-- ——————————————————————————— -->
 
-  <div class="entry" id="deploy-script">
-    <div class="entry-head"><span class="entry-num">17.</span> The Deploy Script</div>
-    <p>The complete deployment has a specific ordering. BindPlane resources must exist before the agents that reference them. The agents must exist before rollouts push configs to them. The application must be configured to send telemetry to the gateway.</p>
+  <div class="entry" id="deploy-sequence">
+    <div class="entry-head"><span class="entry-num">20.</span> The Full Deploy Sequence</div>
+    <p>Here is the entire deployment, end to end. Every step references something from the entries above. If you have cloned the <a href="https://github.com/mreider/astroshop-bindplane-labs" target="_blank" rel="noopener">repository</a>, filled in <code>.env</code>, and have a cluster ready, you can run this.</p>
     <div class="ex">#!/usr/bin/env bash
-# 1. Connect to GKE
-gcloud container clusters get-credentials astroshop-bp --region us-central1
+# 1. Connect to your cluster
+gcloud container clusters get-credentials $GKE_CLUSTER \
+  --region $GKE_REGION --project $GCP_PROJECT
 
-# 2. Apply BindPlane resources (order matters)
-bindplane apply -f bindplane/sources.yaml
-bindplane apply -f bindplane/gateway-destination.yaml
+# 2. Apply BindPlane resources in dependency order (entry 10)
+bindplane apply -f bindplane/sources.yaml                       # entry 5
+bindplane apply -f bindplane/gateway-destination.yaml            # entry 6
 bindplane apply -f bindplane/gateway-to-bindplane-destination.yaml
-bindplane apply -f bindplane/gateway-config.yaml
+bindplane apply -f bindplane/gateway-config.yaml                 # entry 7
 bindplane apply -f bindplane/node-config.yaml
 bindplane apply -f bindplane/cluster-config.yaml
-bindplane apply -f bindplane/fleets.yaml
+bindplane apply -f bindplane/fleets.yaml                         # entry 8
 
-# 3. Create k8s namespace and secret
+# 3. Create the Kubernetes namespace and agent secret
 kubectl create namespace bindplane-agent
 kubectl -n bindplane-agent create secret generic bindplane-agent-secret \
   --from-literal=secret-key="$BINDPLANE_SECRET_KEY"
 
-# 4. Deploy agents
-kubectl apply -f bindplane/k8s-gateway-agent.yaml \
-              -f bindplane/k8s-node-agent.yaml \
-              -f bindplane/k8s-cluster-agent.yaml
+# 4. Deploy agents — they connect via OpAMP (entry 3)
+kubectl apply -f bindplane/k8s-gateway-agent.yaml                # entry 13
+kubectl apply -f bindplane/k8s-node-agent.yaml                   # entry 14
+kubectl apply -f bindplane/k8s-cluster-agent.yaml                # entry 15
 
-# 5. Deploy the application
+# 5. Deploy the application (entry 21)
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm upgrade --install astroshop open-telemetry/opentelemetry-demo \
   -f astroshop-values.yaml --namespace astroshop --create-namespace
 
-# 6. Push configurations to agents
+# 6. Push configurations to connected agents (entry 12)
 bindplane rollout start astroshop-gateway
 bindplane rollout start astroshop-node
-bindplane rollout start astroshop-cluster</div>
-    <p>The same sequence runs in our <a href="https://github.com/mreider/astroshop-bindplane-labs/blob/main/.github/workflows/deploy.yml" target="_blank" rel="noopener">GitHub Actions workflow</a>, triggered manually via <code>workflow_dispatch</code> with a deploy/teardown toggle.</p>
+bindplane rollout start astroshop-cluster
+
+# 7. Verify
+bindplane get agents                # should show Connected agents
+kubectl get pods -n bindplane-agent # should show Running pods
+kubectl get pods -n astroshop       # should show the demo app</div>
+    <p>This is the same sequence used in <code>scripts/deploy.sh</code> and <code>.github/workflows/deploy.yml</code>. The workflow adds GCP authentication, Helm installation, and BindPlane CLI setup as preceding steps &mdash; see the <a href="https://github.com/mreider/astroshop-bindplane-labs/blob/main/.github/workflows/deploy.yml" target="_blank" rel="noopener">workflow file</a> for the complete CI/CD version.</p>
   </div>
 
   <div class="entry" id="astroshop-values">
-    <div class="entry-head"><span class="entry-num">18.</span> The Astroshop Collector</div>
-    <p>The <a href="https://opentelemetry.io/docs/demo/" target="_blank" rel="noopener">Astronomy Shop</a> ships with its own OTel Collector that sends telemetry to Jaeger, Prometheus, and OpenSearch. We add a second exporter that forwards a copy of everything to the BindPlane gateway agent.</p>
+    <div class="entry-head"><span class="entry-num">21.</span> The Astroshop Collector</div>
+    <p>The <a href="https://opentelemetry.io/docs/demo/" target="_blank" rel="noopener">Astronomy Shop</a> ships with its own OTel Collector that sends telemetry to Jaeger, Prometheus, and OpenSearch. We add a second exporter in <code>astroshop-values.yaml</code> that forwards a copy of everything to the BindPlane gateway agent.</p>
     <div class="ex"># astroshop-values.yaml (Helm values override)
 opentelemetry-collector:
   enabled: true
@@ -541,7 +661,7 @@ opentelemetry-collector:
   </div>
 
   <div class="entry" id="debugging">
-    <div class="entry-head"><span class="entry-num">19.</span> Debugging a Failed Rollout</div>
+    <div class="entry-head"><span class="entry-num">22.</span> Debugging a Failed Rollout</div>
     <p>After rolling out the node configuration, we saw this:</p>
     <div class="ex">$ bindplane rollout status astroshop-node
 
@@ -555,7 +675,7 @@ astroshop-node:1  Error   1      0          1       0        2</div>
  "error":"failed to reload config: collector failed to restart:
   'metrics' has invalid keys: k8s.pod.volume.usage"}</div>
     <p>The BindPlane-generated collector config included a metric (<code>k8s.pod.volume.usage</code>) that agent v1.80.1 did not support. The agent rolled back gracefully to its previous config &mdash; the rollback worked perfectly. The problem was the gap between &ldquo;something went wrong&rdquo; and finding out <em>what</em>.</p>
-    <p>The fix was straightforward: remove the <code>k8s_kubelet</code> source from the node configuration (its metrics were incompatible with this agent version), re-apply, and re-roll out. The second rollout went to &ldquo;Stable&rdquo; with zero errors.</p>
+    <p>The fix was straightforward: remove the <code>k8s_kubelet</code> source from the node configuration (its metrics were incompatible with this agent version), re-apply, and re-roll out. The second rollout went to <code>Stable</code> with zero errors.</p>
   </div>
 
   <!-- ——————————————————————————— -->
@@ -563,7 +683,7 @@ astroshop-node:1  Error   1      0          1       0        2</div>
   <!-- ——————————————————————————— -->
 
   <div class="entry" id="what-worked">
-    <div class="entry-head"><span class="entry-num">20.</span> What Worked Well</div>
+    <div class="entry-head"><span class="entry-num">23.</span> What Worked Well</div>
     <p>After working through the setup friction, these aspects of BindPlane stood out:</p>
     <dl class="defs">
       <dt>GitOps workflow</dt><dd>Once you know the YAML format, <code>bindplane apply</code> is clean and fast. Everything is a file in a repo.</dd>
@@ -576,7 +696,7 @@ astroshop-node:1  Error   1      0          1       0        2</div>
   </div>
 
   <div class="entry" id="doc-gaps">
-    <div class="entry-head"><span class="entry-num">21.</span> Documentation Gaps</div>
+    <div class="entry-head"><span class="entry-num">24.</span> Documentation Gaps</div>
     <p>Every friction point below was verified against the official <a href="https://docs.bindplane.com/" target="_blank" rel="noopener">BindPlane documentation</a> as of April 2026. These are not complaints about complexity &mdash; they are specific, actionable gaps where the docs could save the next user significant time.</p>
     <dl class="defs">
       <dt><a href="#sources">Source names</a></dt><dd>CLI type names (<code>k8s_container</code>) don&rsquo;t appear in the docs. No mapping from UI display names to CLI names.</dd>
@@ -587,7 +707,7 @@ astroshop-node:1  Error   1      0          1       0        2</div>
       <dt><a href="#opamp-labels">Fleet labels</a></dt><dd>Auto-assignment via <code>OPAMP_LABELS</code> is undocumented. <a href="https://docs.bindplane.com/feature-guides/deployment-and-management/fleets" target="_blank" rel="noopener">Fleet docs</a> describe UI and CLI methods only.</dd>
       <dt>Broken links</dt><dd>Several docs URLs return 404. The site restructured paths but old links persist in search results and blog posts.</dd>
     </dl>
-    <p>The complete setup &mdash; all YAML files, Kubernetes manifests, deploy scripts, and GitHub Actions workflow &mdash; is in our <a href="https://github.com/mreider/astroshop-bindplane-labs" target="_blank" rel="noopener">repository</a>. Use it as a reference or fork it to start your own BindPlane deployment.</p>
+    <p>The complete setup &mdash; all YAML files, Kubernetes manifests, deploy scripts, and GitHub Actions workflow &mdash; is in our <a href="https://github.com/mreider/astroshop-bindplane-labs" target="_blank" rel="noopener">repository</a>. Fork it to start your own BindPlane deployment.</p>
   </div>
 
   <footer>
