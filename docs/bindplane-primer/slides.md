@@ -4,14 +4,15 @@ theme: uncover
 class: invert
 paginate: true
 style: |
-  /* ===== OVERFLOW PREVENTION ===== */
+  /* ===== BASE (matches bp.mreider.com primer) ===== */
   section {
-    background: linear-gradient(180deg, #0a0a14 0%, #0d0d1a 100%);
-    font-family: 'Segoe UI', 'Arial', sans-serif;
+    background: linear-gradient(180deg, #0b0f1a 0%, #0e1224 100%);
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
     padding: 50px 70px 40px 70px;
     color: #ffffff;
     text-align: left;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* ===== TITLE SLIDE ===== */
@@ -24,91 +25,100 @@ style: |
   }
   section.title h1 {
     text-align: center;
-    border-bottom: 4px solid;
-    border-image: linear-gradient(90deg, #00a1e0, #b455b6) 1;
+    border-bottom: 3px solid #1496ff;
     padding-bottom: 16px;
     margin-bottom: 0;
     font-size: 1.8em;
+    font-weight: 300;
+    letter-spacing: -0.02em;
   }
 
   /* ===== HEADERS ===== */
   h1 {
     color: #ffffff;
-    font-size: 1.6em;
-    font-weight: 700;
+    font-size: 1.5em;
+    font-weight: 600;
     text-align: left;
-    border-bottom: 3px solid;
-    border-image: linear-gradient(90deg, #00a1e0, #b455b6) 1;
+    border-bottom: 2px solid #1496ff;
     padding-bottom: 10px;
     margin-bottom: 20px;
     margin-top: 0;
+    letter-spacing: -0.01em;
   }
 
   /* ===== BODY TEXT ===== */
   p {
     font-size: 0.78em;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 10px 0;
+    font-weight: 400;
   }
 
   /* ===== LISTS ===== */
   ul, ol {
     font-size: 0.78em;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 8px 0;
     padding-left: 24px;
   }
 
   li {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
   /* ===== EMPHASIS ===== */
   strong {
-    color: #00a1e0;
+    color: #1496ff;
+    font-weight: 600;
   }
 
   code {
-    font-size: 0.75em;
-    background: rgba(255,255,255,0.1);
-    padding: 2px 6px;
-    border-radius: 3px;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    font-size: 0.72em;
+    background: rgba(20, 150, 255, 0.12);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(20, 150, 255, 0.2);
   }
 
   /* ===== CODE BLOCKS ===== */
   pre {
-    font-size: 0.6em;
-    margin: 12px 0;
-    background: rgba(0,0,0,0.3);
-    padding: 15px;
-    border-radius: 5px;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    font-size: 0.58em;
+    margin: 14px 0;
+    background: #141827;
+    padding: 16px 18px;
+    border-radius: 6px;
+    border-left: 3px solid #1496ff;
   }
 
   /* ===== TABLES ===== */
   table {
     font-size: 0.68em;
-    margin: 12px 0;
+    margin: 14px 0;
     border-collapse: collapse;
     width: 100%;
   }
 
   th {
-    background: rgba(0,161,224,0.25);
-    padding: 6px 10px;
+    background: rgba(20, 150, 255, 0.15);
+    padding: 8px 12px;
     text-align: left;
-    border-bottom: 2px solid #00a1e0;
+    border-bottom: 2px solid #1496ff;
+    font-weight: 600;
+    letter-spacing: 0.01em;
   }
 
   td {
-    padding: 6px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
   }
 
   /* ===== IMAGES ===== */
   img {
     max-width: 90%;
     max-height: 280px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 ---
 
