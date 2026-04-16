@@ -39,7 +39,7 @@
       <li><a href="#deploy-sequence"><span class="num">20</span> The Full Deploy Sequence</a></li>
       <li><a href="#astroshop-values"><span class="num">21</span> The Astroshop Collector</a></li>
       <li><a href="#debugging"><span class="num">22</span> Debugging a Failed Rollout</a></li>
-      <li><a href="#what-worked"><span class="num">23</span> What Worked Well</a></li>
+      <li><a href="#takeaways"><span class="num">23</span> Takeaways</a></li>
     </ol>
   </nav>
 
@@ -681,17 +681,17 @@ astroshop-node:1  Error   1      0          1       0        2</div>
   <div class="phase">What We Learned</div>
   <!-- ——————————————————————————— -->
 
-  <div class="entry" id="what-worked">
-    <div class="entry-head"><span class="entry-num">23.</span> What Worked Well</div>
-    <p>After working through the setup friction, these aspects of BindPlane stood out:</p>
+  <div class="entry" id="takeaways">
+    <div class="entry-head"><span class="entry-num">23.</span> Takeaways</div>
+    <p>BindPlane sits between your OTel Collectors and the problem of managing them at scale. The core loop is: define sources and destinations as YAML, wire them into configurations, group agents into fleets, and push changes via rollouts. The agents handle the rest over OpAMP.</p>
+    <p>The parts that make this practical:</p>
     <dl class="defs">
-      <dt>GitOps workflow</dt><dd>Once you know the YAML format, <code>bindplane apply</code> is clean and fast. Everything is a file in a repo.</dd>
-      <dt>Phased rollouts</dt><dd>The automatic rollback on failure is a genuine safety net. Incompatible configs never stuck.</dd>
-      <dt>Fleet concept</dt><dd>Simple and intuitive. Configurations flow through fleets to agents without per-agent management.</dd>
-      <dt>CLI speed</dt><dd><code>bindplane get agents</code>, <code>rollout status</code> &mdash; all responsive. No waiting.</dd>
-      <dt>Cloud OpAMP</dt><dd><code>wss://app.bindplane.com/v1/opamp</code> just worked. No server setup, no networking headaches.</dd>
-      <dt>Error messages</dt><dd>When things failed, the messages were usually actionable. The gap is in discoverability <em>before</em> the error, not in the error itself.</dd>
+      <dt>GitOps</dt><dd>Every resource is a YAML file in a repo. <code>bindplane apply</code> is the only command you need. CI/CD follows naturally.</dd>
+      <dt>Safe rollouts</dt><dd>Phased delivery with automatic rollback. You can push a config change to a hundred agents and know that a bad config won&rsquo;t stick.</dd>
+      <dt>Fleet grouping</dt><dd>Configurations flow through fleets to agents. Add a new node to the cluster and its agent joins the right fleet automatically via labels.</dd>
+      <dt>No server to run</dt><dd>BindPlane Cloud&rsquo;s OpAMP endpoint is a single WebSocket URL. Agents connect out. No ingress, no VPN, no infrastructure to maintain.</dd>
     </dl>
+    <p>The complete setup &mdash; all YAML files, Kubernetes manifests, deploy scripts, and GitHub Actions workflow &mdash; is in the <a href="https://github.com/mreider/astroshop-bindplane-labs" target="_blank" rel="noopener">repository</a>. Fork it to start your own deployment.</p>
   </div>
 
   <footer>
