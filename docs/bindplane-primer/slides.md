@@ -122,77 +122,82 @@ style: |
 
 # What You'll Learn
 
-**Audience:** Engineers running OTel Collectors in Kubernetes who want centralized management
+**Format:** Six modules, each followed by a hands-on lab
 
-- Why managing collector configs at scale is painful
-- How **BindPlane** solves this with a control plane approach
-- The resource model: **sources, destinations, configurations, fleets**
-- Deploying and operating a full collector fleet with the Astronomy Shop demo
+By the end you will have:
+- A running **Astronomy Shop** on Kubernetes
+- Three **BindPlane agents** collecting telemetry
+- Telemetry flowing to **Dynatrace** through a gateway
+- Everything defined as **YAML in a Git repo**
+
+---
+
+# What You'll Need
+
+Before we start, confirm you have:
+
+- A **BindPlane Cloud** account at `app.bindplane.com`
+- A **Kubernetes cluster** with `kubectl` access
+- **Helm** v4+ installed
+- The **bindplane** CLI installed
+- A **Dynatrace** environment with an API token (traces, metrics, logs ingest scopes)
 
 ---
 
 <!-- _class: title -->
 
-# The Problem
+# Module 1
 
-**What happens when you have more than one collector?**
+**The Problem and the Solution**
 
 ---
 
 # One Collector Is Easy
 
-You write a `config.yaml`. You apply it with `kubectl`. It works.
+You write a `config.yaml`. You apply it. It works.
 
-But a real cluster has multiple collectors with different purposes:
+But a real cluster has multiple collectors:
 
 - A **gateway** receiving OTLP from your apps
 - A **node agent** on every node collecting container logs
 - A **cluster agent** collecting Kubernetes events
 
-Each has its own config file. Each needs to be updated independently.
+Each has its own config. Each changes independently.
 
 ---
 
-# Five Collectors, Five Problems
+# The Problem at Scale
 
-Now you need to change the export destination from Jaeger to Dynatrace.
+Change the export destination from Jaeger to Dynatrace:
 
 - Edit 5 config files
-- Apply each one to the right workload
-- Hope you didn't introduce a typo in one of them
+- Apply each to the right workload
+- Hope you didn't introduce a typo
 - Do it again next month for the new cluster
 
-The problem isn't deploying collectors. It's **managing their configurations across environments, over time, at scale**.
+The problem isn't deploying collectors. It's **managing their configurations across environments, over time**.
 
 ---
-
-<!-- _class: title -->
 
 # BindPlane
 
-**One control plane for all your collectors**
+**BindPlane** is a control plane for OpenTelemetry Collectors.
+
+You define configurations once. BindPlane delivers them to every collector that should receive them.
+
+- Change a destination - **every matched collector updates**
+- Add a new node - **its agent auto-joins the right group**
+- Bad config? - **automatic rollback**
 
 ---
 
-# What BindPlane Does
+# OpAMP
 
-**BindPlane** is a control plane for OpenTelemetry Collectors. You define configurations once. BindPlane delivers them to every collector that should receive them.
+Collectors managed by BindPlane are called **agents**. They connect using **OpAMP** (Open Agent Management Protocol).
 
-- Change a destination → **every matched collector updates**
-- Add a new node → **its agent auto-joins the right group**
-- Bad config? → **automatic rollback, no broken collectors**
-
-Available as a cloud service at `app.bindplane.com` or self-hosted.
-
----
-
-# How Agents Connect: OpAMP
-
-Collectors managed by BindPlane are called **agents**. They connect using **OpAMP** (Open Agent Management Protocol) - an open standard.
-
-- The agent initiates an **outbound WebSocket** to BindPlane
+- The agent initiates an **outbound WebSocket**
 - BindPlane **never reaches into your network**
-- Works through firewalls - no inbound ports needed
+- No inbound ports, no VPN tunnels
 
 ```
 wss://app.bindplane.com/v1/opamp
@@ -202,17 +207,68 @@ wss://app.bindplane.com/v1/opamp
 
 <!-- _class: title -->
 
-# The Building Blocks
+# Lab 1
 
-**Four resources that define what your collectors do**
+**Set up your environment**
+
+---
+
+# Lab 1: Install and Authenticate
+
+**Step 1:** Install the BindPlane CLI
+
+```
+curl -L -o /tmp/bp.zip https://storage.googleapis.com/bindplane-op-releases/bindplane/latest/bindplane-ee-darwin-arm64.zip
+unzip /tmp/bp.zip -d /tmp/bp && mv /tmp/bp/bindplane ~/bin/
+```
+
+**Step 2:** Authenticate with your API key
+
+```
+bindplane profile set default \
+  --api-key YOUR_API_KEY \
+  --remote-url https://app.bindplane.com
+```
+
+---
+
+# Lab 1: Verify
+
+**Step 3:** Confirm you can reach BindPlane Cloud
+
+```
+$ bindplane get agents
+
+No matching resources found.
+```
+
+No agents yet. That's expected. The empty response confirms your CLI is authenticated.
+
+**Step 4:** Get your secret key (you'll need it later for agents)
+
+```
+$ bindplane secret get
+
+01KPAT6TVX0Z2TP8H1ZWN47EZE (default)
+```
+
+Save this value. Agents use it to authenticate with BindPlane.
+
+---
+
+<!-- _class: title -->
+
+# Module 2
+
+**Sources and Destinations**
 
 ---
 
 # Sources
 
-A **source** defines where telemetry comes from. It's BindPlane's abstraction over an OTel receiver.
+A **source** defines where telemetry comes from. It's BindPlane's version of an OTel receiver.
 
-You define a source once. Any number of configurations can reference it. Change the source, and every configuration that uses it gets the update.
+You define it once as a named resource. Any number of configurations can reference it. Change the source, every configuration that uses it gets the update.
 
 | Source type | What it collects |
 |-------------|-----------------|
@@ -222,9 +278,44 @@ You define a source once. Any number of configurations can reference it. Change 
 
 ---
 
-# Source YAML
+# Destinations
 
-Sources live in `bindplane/sources.yaml`:
+A **destination** defines where telemetry goes. BindPlane's version of an OTel exporter.
+
+Our setup needs two:
+
+| Destination | Type | Purpose |
+|------------|------|---------|
+| `astroshop-otlp-export` | `dynatrace_otlp` | Final backend |
+| `astroshop-gateway` | `bindplane_gateway` | Internal routing |
+
+---
+
+# Why Two Destinations?
+
+We could have every agent export directly to Dynatrace. But that means:
+
+- API token on **every node**
+- Multiple **egress points** to monitor
+- More **connections** for the backend to handle
+
+Instead: node and cluster agents forward to the **gateway**. Only the gateway talks to Dynatrace. One secret, one egress point.
+
+This is the **fan-in pattern**.
+
+---
+
+<!-- _class: title -->
+
+# Lab 2
+
+**Create sources and destinations**
+
+---
+
+# Lab 2: Write the Source File
+
+Create `bindplane/sources.yaml`:
 
 ```yaml
 apiVersion: bindplane.observiq.com/v1
@@ -238,51 +329,129 @@ spec:
       value: [Logs, Metrics, Traces]
     - name: grpc_port
       value: 4317
+    - name: http_port
+      value: 4318
 ```
 
-Apply with `bindplane apply -f bindplane/sources.yaml`
+The full file in the repo has all five sources. For now, start with OTLP.
 
 ---
 
-# Destinations
+# Lab 2: Write the Destination Files
 
-A **destination** defines where telemetry goes. It's BindPlane's abstraction over an OTel exporter.
+Create `bindplane/gateway-destination.yaml`:
 
-Our setup has two destinations - and understanding why reveals a key architectural decision.
+```yaml
+apiVersion: bindplane.observiq.com/v1
+kind: Destination
+metadata:
+  name: astroshop-otlp-export
+spec:
+  type: dynatrace_otlp
+  parameters:
+    - name: deployment_type
+      value: Custom
+    - name: custom_url
+      value: https://YOUR-ENV.dynatrace.com/api/v2/otlp
+    - name: dynatrace_api_token
+      value: "${DT_API_TOKEN}"
+```
 
-| Destination | Type | Purpose |
-|------------|------|---------|
-| `astroshop-otlp-export` | `dynatrace_otlp` | Ship to Dynatrace |
-| `astroshop-gateway` | `bindplane_gateway` | Route to the gateway agent |
+Replace `YOUR-ENV` with your Dynatrace environment.
 
 ---
 
-# Why Two Destinations?
+# Lab 2: Apply and Verify
 
-We could have every agent export directly to Dynatrace.
+**Apply** the resources (order doesn't matter for sources and destinations):
 
-But that means:
-- API token on **every node** - more secrets to manage
-- Multiple egress points to **monitor and firewall**
-- More connections for the **backend to handle**
+```
+bindplane apply -f bindplane/sources.yaml
+bindplane apply -f bindplane/gateway-destination.yaml
+bindplane apply -f bindplane/gateway-to-bindplane-destination.yaml
+```
 
-Instead: node agents forward to the **gateway**. The gateway is the only one that talks to Dynatrace. **One secret, one egress point**.
+**Verify** they exist:
 
-This is the **fan-in pattern**.
+```
+$ bindplane get sources
+NAME                         TYPE   VERSION
+astroshop-otlp-source        otlp   1
+
+$ bindplane get destinations
+NAME                         TYPE             VERSION
+astroshop-otlp-export        dynatrace_otlp   1
+astroshop-gateway            bindplane_gateway 1
+```
+
+---
+
+<!-- _class: title -->
+
+# Module 3
+
+**Configurations and Fleets**
 
 ---
 
 # Configurations
 
-A **configuration** wires sources to destinations into a pipeline.
+Sources and destinations are the inputs and outputs. A **configuration** wires them into a pipeline.
 
-It is the unit of deployment - the thing you **version, roll out, and roll back**. Changing a configuration changes what an entire group of collectors does, without touching any of them individually.
+It is the unit of deployment: the thing you **version, roll out, and roll back**. Separating the configuration from the agents means you change what collectors do without touching them individually.
+
+A configuration references sources and destinations **by name**. They must exist first.
+
+---
+
+# Three Configurations
+
+| Config | Sources | Destination | Purpose |
+|--------|---------|-------------|---------|
+| `astroshop-gateway` | OTLP | Dynatrace | App telemetry to backend |
+| `astroshop-node` | Container, OTLP | Gateway | Node data to gateway |
+| `astroshop-cluster` | K8s Events | Gateway | Cluster data to gateway |
+
+Node and cluster configs route to the **gateway**, not directly to Dynatrace. The gateway config is the only one with external credentials.
+
+---
+
+# Fleets
+
+If configurations already have label selectors, why do you need **fleets**?
+
+**Operational visibility.** A fleet is a named group you can monitor:
+
+- Agent count
+- Combined throughput (logs, metrics, traces per hour)
+- Agent versions
+- Health status
+
+A **configuration** is the unit of deployment. A **fleet** is the unit of operations.
+
+---
+
+<!-- _class: title -->
+
+# Lab 3
+
+**Create configurations and fleets**
+
+---
+
+# Lab 3: Write a Configuration
+
+Create `bindplane/gateway-config.yaml`:
 
 ```yaml
+apiVersion: bindplane.observiq.com/v1
 kind: Configuration
 metadata:
   name: astroshop-gateway
+  labels:
+    configuration: astroshop-gateway
 spec:
+  measurementInterval: 1m
   sources:
     - name: astroshop-otlp-source
   destinations:
@@ -292,238 +461,109 @@ spec:
       configuration: astroshop-gateway
 ```
 
+The `selector.matchLabels` determines which agents receive this config.
+
 ---
 
-# Fleets
+# Lab 3: Write the Fleets
 
-If a configuration already has a label selector, why do you need **fleets**?
-
-**Operational visibility.** A fleet gives you a named group you can monitor - agent count, combined throughput, version distribution, health status.
-
-- A **configuration** is the unit of deployment
-- A **fleet** is the unit of operations
+Create `bindplane/fleets.yaml`:
 
 ```yaml
+apiVersion: bindplane.observiq.com/v1
 kind: Fleet
 metadata:
   name: astroshop-gateway-fleet
+  displayName: Astroshop Gateway
+  labels:
+    platform: kubernetes-gateway
+    agent-type: observiq-otel-collector
 spec:
   configuration: astroshop-gateway
+selector:
+  matchLabels:
+    configuration: astroshop-gateway
 ```
 
----
-
-<!-- _class: screenshot -->
-
-# Fleets in the BindPlane UI
-
-![placeholder](screenshots/fleets.png)
-
-**SCREENSHOT:** BindPlane > Fleets page
-- Three fleets: Gateway, Node, Cluster
-- Each shows agent count and throughput
-- **Key point:** One view for the entire collector fleet
+The fleet's `spec.configuration` links it to the config from the previous step.
 
 ---
 
-<!-- _class: title -->
+# Lab 3: Apply and Verify
 
-# The Project
-
-**How the files are organized and why order matters**
-
----
-
-# Repository Layout
-
-Everything is YAML in a Git repo. Review changes in PRs. Deploy from CI.
+**Apply** in dependency order (configs reference sources, fleets reference configs):
 
 ```
-bindplane/
-├── sources.yaml              ← what to collect
-├── gateway-destination.yaml  ← where to send (Dynatrace)
-├── gateway-to-bindplane-destination.yaml  ← internal routing
-├── gateway-config.yaml       ← pipeline: OTLP → Dynatrace
-├── node-config.yaml          ← pipeline: logs → gateway
-├── cluster-config.yaml       ← pipeline: events → gateway
-├── fleets.yaml               ← agent grouping
-├── k8s-gateway-agent.yaml    ← Kubernetes Deployment
-├── k8s-node-agent.yaml       ← Kubernetes DaemonSet
-└── k8s-cluster-agent.yaml    ← Kubernetes Deployment
-```
-
----
-
-# The Dependency Chain
-
-These files **cannot** be applied in any order. Each resource references others by name.
-
-| Step | What | Tool | Why this order |
-|------|------|------|----------------|
-| 1 | Sources + Destinations | `bindplane apply` | No dependencies |
-| 2 | Configurations | `bindplane apply` | Reference sources + destinations |
-| 3 | Fleets | `bindplane apply` | Reference configurations |
-| 4 | K8s Manifests | `kubectl apply` | Agents that connect to BindPlane |
-| 5 | Rollouts | `bindplane rollout start` | Push configs to connected agents |
-
----
-
-# Applying Resources
-
-Authenticate, then apply in dependency order:
-
-```
-bindplane profile set default \
-  --api-key $BINDPLANE_API_KEY \
-  --remote-url https://app.bindplane.com
-
-bindplane apply -f bindplane/sources.yaml
-bindplane apply -f bindplane/gateway-destination.yaml
 bindplane apply -f bindplane/gateway-config.yaml
+bindplane apply -f bindplane/node-config.yaml
+bindplane apply -f bindplane/cluster-config.yaml
 bindplane apply -f bindplane/fleets.yaml
-
-bindplane get configurations   # verify
-bindplane get fleets           # verify
 ```
 
-At this point, BindPlane knows **what** to collect. But no agents are running yet.
+**Verify:**
+
+```
+$ bindplane get configurations
+NAME                VERSION
+astroshop-gateway   1
+astroshop-node      1
+astroshop-cluster   1
+
+$ bindplane get fleets
+NAME                         CONFIGURATION
+astroshop-gateway-fleet      astroshop-gateway
+```
 
 ---
 
 <!-- _class: title -->
 
-# The Three Agent Patterns
+# Module 4
 
-**Gateway, Node, and Cluster**
+**The Three Agent Patterns**
 
 ---
 
-# The Gateway Agent
+# Gateway Agent
 
 A Kubernetes **Deployment** that acts as the central routing point.
 
-- Receives OTLP from the app's collector **and** from other agents
-- Exports to Dynatrace - the **only** agent with external credentials
-- The **only** agent that needs network access outside the cluster
+- Receives OTLP from the app's OTel Collector and other agents
+- Exports to Dynatrace - the **only agent with external credentials**
+- The **only agent that needs network access outside the cluster**
 
-```
-env:
-  - name: OPAMP_ENDPOINT
-    value: wss://app.bindplane.com/v1/opamp
-  - name: OPAMP_LABELS
-    value: "configuration=astroshop-gateway,fleet=astroshop-gateway-fleet"
-```
+The manifest includes RBAC, a Service (ports 4317/4318), and an init container that writes a bootstrap config so the agent can start before BindPlane sends the real pipeline.
 
 ---
 
-# The Node Agent
+# Node Agent
 
 A **DaemonSet** - one pod per node. Collects what the gateway can't see.
 
 | Feature | Why |
 |---------|-----|
-| **DaemonSet** | One per node - access to host filesystem |
-| **hostPort 4317** | Local OTLP endpoint for pods on same node |
-| **/var/log mount** | Read container log files from the host |
-| **→ Gateway** | Forwards to gateway, not directly to backend |
+| DaemonSet | One per node, access to host filesystem |
+| `hostPort` 4317 | Local OTLP endpoint for pods on same node |
+| `/var/log` mount | Read container log files from the host |
+| Routes to gateway | Not directly to backend |
 
-Deploy: `kubectl apply -f bindplane/k8s-node-agent.yaml`
+Container logs live on the host filesystem. Only a pod running on that node can read them.
 
 ---
 
-# The Cluster Agent
+# Cluster Agent
 
 A single-replica **Deployment** for cluster-wide data.
 
-Kubernetes events (pod scheduled, OOM killed) and cluster metrics are **global** - not per-node. A DaemonSet would collect the same events on every node.
+Kubernetes events (pod scheduled, OOM killed) and cluster metrics are **global**. A DaemonSet would collect the same events on every node.
 
-One pod. One copy. No duplication. Forwards to the gateway.
-
-Deploy: `kubectl apply -f bindplane/k8s-cluster-agent.yaml`
+One pod. One copy. No duplication. Routes to the gateway.
 
 ---
 
-<!-- _class: screenshot -->
+# How Agents Find Their Config
 
-# The Full Architecture
-
-![placeholder](screenshots/agents.png)
-
-**SCREENSHOT:** BindPlane > Agents page
-- Gateway, Node, and Cluster agents all connected
-- Each shows fleet, configuration, and throughput
-- **Key point:** All three agent types managed from one control plane
-
----
-
-<!-- _class: title -->
-
-# Rollouts
-
-**Pushing configurations safely**
-
----
-
-# Why Phased Rollouts?
-
-Applying a configuration makes it available. A **rollout** pushes it to agents.
-
-Why not push immediately? Because pushing a bad config to a hundred agents at once would be **catastrophic**.
-
-Rollouts are **phased**:
-1. Push to a small batch
-2. Watch for errors
-3. Expand to more agents
-4. If any agent rejects → **pause and roll back**
-
-No agents are left in a broken state.
-
----
-
-# Rollout Commands
-
-```
-$ bindplane rollout start astroshop-gateway
-
-NAME                STATUS   COMPLETED  ERRORS  PENDING
-astroshop-gateway:3 Started  0          0       1
-
-$ bindplane rollout status astroshop-gateway
-
-NAME                STATUS   COMPLETED  ERRORS  PENDING
-astroshop-gateway:3 Stable   2          0       0
-```
-
-**Stable** = every agent accepted. **Error** = at least one rejected (auto-rolled back).
-
----
-
-<!-- _class: title -->
-
-# Kubernetes Details
-
-**The parts BindPlane doesn't manage**
-
----
-
-# What BindPlane Manages vs. What You Manage
-
-There is a deliberate separation of concerns:
-
-| BindPlane manages | You manage |
-|-------------------|-----------|
-| Pipeline config (sources, processors, destinations) | Container image and version |
-| Config delivery via OpAMP | RBAC permissions |
-| Phased rollouts | Resource limits |
-| Fleet grouping | Security context |
-
-BindPlane can change the pipeline remotely. Infrastructure changes require redeploying the manifest.
-
----
-
-# OPAMP_LABELS: How Agents Find Their Config
-
-BindPlane matches agents to configs using **labels**, not hostnames or IPs.
+Agents report **labels** when they connect. BindPlane matches labels to configurations and fleets.
 
 ```yaml
 env:
@@ -531,60 +571,126 @@ env:
     value: "configuration=astroshop-gateway,fleet=astroshop-gateway-fleet"
 ```
 
-- `configuration=` matches the **Configuration's** `selector.matchLabels`
-- `fleet=` matches the **Fleet's** `selector.matchLabels`
+- `configuration=` matches the Configuration's `selector.matchLabels`
+- `fleet=` matches the Fleet's `selector.matchLabels`
 
-A new pod starts → labels match → fleet assigned → config pushed. **Automatic.**
-
----
-
-# The Init Container
-
-The agent needs a config file to start, but BindPlane sends the real config **after** it connects. And the container is read-only for security.
-
-**Solution:** An init container writes a no-op bootstrap config into an `emptyDir` volume.
-
-```yaml
-initContainers:
-  - name: setup-volumes
-    command: ["sh", "-c"]
-    args:
-      - echo 'receivers: {nop:}
-              exporters: {nop:}
-              service: {pipelines: {metrics: {receivers: [nop], exporters: [nop]}}}
-        ' > /etc/otel/storage/config.yaml
-```
-
-The agent starts with the no-op, connects to BindPlane, and immediately receives the real pipeline.
+New pod starts, labels match, fleet assigned, config pushed. **Automatic.**
 
 ---
 
 <!-- _class: title -->
 
-# The Full Deploy
+# Lab 4
 
-**Putting it all together**
+**Deploy the agents**
 
 ---
 
-# End-to-End Sequence
+# Lab 4: Create the Namespace and Secret
+
+The agents run in their own namespace and need the secret key from Lab 1:
 
 ```
-# 1. Apply BindPlane resources (dependency order)
-bindplane apply -f bindplane/sources.yaml
-bindplane apply -f bindplane/gateway-destination.yaml
-bindplane apply -f bindplane/gateway-config.yaml
-bindplane apply -f bindplane/node-config.yaml
-bindplane apply -f bindplane/cluster-config.yaml
-bindplane apply -f bindplane/fleets.yaml
-
-# 2. Deploy agents to Kubernetes
 kubectl create namespace bindplane-agent
-kubectl apply -f bindplane/k8s-gateway-agent.yaml
-kubectl apply -f bindplane/k8s-node-agent.yaml
-kubectl apply -f bindplane/k8s-cluster-agent.yaml
 
-# 3. Push configurations
+kubectl -n bindplane-agent create secret generic \
+  bindplane-agent-secret \
+  --from-literal=secret-key="YOUR_SECRET_KEY"
+```
+
+Replace `YOUR_SECRET_KEY` with the value from `bindplane secret get`.
+
+---
+
+# Lab 4: Deploy All Three Agents
+
+Apply the three manifests from the repo:
+
+```
+kubectl apply \
+  -f bindplane/k8s-gateway-agent.yaml \
+  -f bindplane/k8s-node-agent.yaml \
+  -f bindplane/k8s-cluster-agent.yaml
+```
+
+**Verify** pods are running:
+
+```
+$ kubectl get pods -n bindplane-agent
+
+NAME                                    READY  STATUS
+bindplane-gateway-agent-xxx             1/1    Running
+bindplane-node-agent-yyy                1/1    Running
+bindplane-cluster-agent-zzz             1/1    Running
+```
+
+---
+
+# Lab 4: Verify Agents in BindPlane
+
+Check that agents registered with BindPlane Cloud:
+
+```
+$ bindplane get agents
+
+NAME                         VERSION  STATUS     FLEET
+bindplane-gateway-agent-xxx  v1.80.1  Connected  astroshop-gateway-fleet
+bindplane-node-agent-yyy     v1.80.1  Connected  astroshop-node-fleet
+bindplane-cluster-agent-zzz  v1.80.1  Connected  astroshop-cluster-fleet
+```
+
+All three agents should show **Connected** and be assigned to their fleets via the `OPAMP_LABELS` in the manifests.
+
+---
+
+<!-- _class: title -->
+
+# Module 5
+
+**Rollouts**
+
+---
+
+# Why Not Push Immediately?
+
+Applying a configuration makes it available. But agents are still running their bootstrap no-op config. A **rollout** pushes the real configuration to them.
+
+Why the extra step? Because pushing a bad config to a hundred agents at once would be **catastrophic**.
+
+Rollouts are **phased**:
+1. Push to a small batch
+2. Watch for errors
+3. Expand to more agents
+4. If any agent rejects the config - **pause and roll back**
+
+---
+
+# Rollout Lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| **Started** | Rollout in progress, pushing to agents |
+| **Stable** | Every agent accepted the config |
+| **Error** | At least one agent rejected (auto-rolled back) |
+| **Paused** | Stopped by error or manually, waiting for action |
+
+The agent that rejected the config reverts to its previous config. No agents are left broken.
+
+---
+
+<!-- _class: title -->
+
+# Lab 5
+
+**Roll out configurations**
+
+---
+
+# Lab 5: Start All Three Rollouts
+
+Push configurations to the connected agents:
+
+```
 bindplane rollout start astroshop-gateway
 bindplane rollout start astroshop-node
 bindplane rollout start astroshop-cluster
@@ -592,17 +698,65 @@ bindplane rollout start astroshop-cluster
 
 ---
 
-# The Astroshop Connection
+# Lab 5: Verify Rollout Status
 
-The Astronomy Shop already has an OTel Collector. We add a second exporter that forwards to the BindPlane gateway.
+Check that all three reached **Stable**:
+
+```
+$ bindplane rollout status astroshop-gateway
+
+NAME                STATUS  COMPLETED  ERRORS
+astroshop-gateway:1 Stable  2          0
+
+$ bindplane rollout status astroshop-node
+
+NAME              STATUS  COMPLETED  ERRORS
+astroshop-node:1  Stable  3          0
+
+$ bindplane rollout status astroshop-cluster
+
+NAME                STATUS  COMPLETED  ERRORS
+astroshop-cluster:1 Stable  1          0
+```
+
+If any show **Error**, check the agent pod logs with `kubectl logs -n bindplane-agent <pod-name>`.
+
+---
+
+<!-- _class: title -->
+
+# Module 6
+
+**The Application**
+
+---
+
+# Connecting the Astronomy Shop
+
+The Astronomy Shop ships with its own OTel Collector. It already sends to Jaeger, Prometheus, and OpenSearch.
+
+We **add** a second exporter that forwards a copy of everything to the BindPlane gateway. The original observability continues to work alongside BindPlane.
+
+The exporter uses Kubernetes service DNS to reach the gateway:
+
+```
+bindplane-gateway-agent.bindplane-agent.svc.cluster.local:4317
+```
+
+---
+
+# Helm Values Override
+
+The `astroshop-values.yaml` file adds our exporter to every pipeline:
 
 ```yaml
-# astroshop-values.yaml
 opentelemetry-collector:
   config:
     exporters:
       otlp/bindplane:
         endpoint: bindplane-gateway-agent.bindplane-agent.svc.cluster.local:4317
+        tls:
+          insecure: true
     service:
       pipelines:
         traces:
@@ -613,20 +767,83 @@ opentelemetry-collector:
           exporters: [opensearch, otlp/bindplane]
 ```
 
-Both backends receive a copy. Existing observability continues to work.
+---
+
+<!-- _class: title -->
+
+# Lab 6
+
+**Deploy the Astronomy Shop**
+
+---
+
+# Lab 6: Install with Helm
+
+Add the chart repo and deploy:
+
+```
+helm repo add open-telemetry \
+  https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+
+helm upgrade --install astroshop \
+  open-telemetry/opentelemetry-demo \
+  -f astroshop-values.yaml \
+  --namespace astroshop \
+  --create-namespace
+```
+
+---
+
+# Lab 6: Verify End-to-End
+
+**Check pods** are running:
+
+```
+$ kubectl get pods -n astroshop | head -5
+
+NAME                         READY  STATUS
+frontend-xxx                 1/1    Running
+checkout-xxx                 1/1    Running
+otel-collector-xxx           1/1    Running
+```
+
+**Check throughput** in BindPlane:
+
+```
+$ bindplane get agents
+
+NAME                        LOGS      METRICS    TRACES
+bindplane-gateway-agent-xx  2.5 MB/h  9.4 MB/h   4.6 MB/h
+```
+
+Non-zero throughput means telemetry is flowing through the gateway to Dynatrace.
 
 ---
 
 <!-- _class: screenshot -->
 
-# Gateway Pipeline in BindPlane
+# Verify in the BindPlane UI
+
+![placeholder](screenshots/agents.png)
+
+**SCREENSHOT:** BindPlane > Agents page
+- All agents connected with throughput
+- Gateway shows logs, metrics, and traces
+- **Key point:** End-to-end pipeline is working
+
+---
+
+<!-- _class: screenshot -->
+
+# Verify the Pipeline
 
 ![placeholder](screenshots/config-gateway.png)
 
 **SCREENSHOT:** BindPlane > Configurations > astroshop-gateway
-- OTLP source on the left, Dynatrace destination on the right
-- Throughput bars showing live data flow
-- **Key point:** The pipeline you defined in YAML, visualized
+- OTLP source on the left, Dynatrace on the right
+- Live throughput bars showing data flow
+- **Key point:** The YAML you wrote, visualized
 
 ---
 
@@ -640,7 +857,7 @@ Both backends receive a copy. Existing observability continues to work.
 
 # A Real Rollout Failure
 
-After rolling out the node configuration:
+After rolling out the node config, we saw this:
 
 ```
 $ bindplane rollout status astroshop-node
@@ -649,9 +866,13 @@ NAME              STATUS  COMPLETED  ERRORS  PENDING
 astroshop-node:1  Error   0          1       2
 ```
 
-One agent rejected the config. Two are still waiting. But **what** was the error?
+One agent rejected the config. Two were held back. The CLI shows the count, but not **what** went wrong.
 
-The CLI only shows the count. We had to check the pod logs:
+---
+
+# Finding the Error
+
+We checked the pod logs:
 
 ```
 $ kubectl logs -n bindplane-agent bindplane-node-agent-wblpl
@@ -660,17 +881,11 @@ $ kubectl logs -n bindplane-agent bindplane-node-agent-wblpl
 "error: 'metrics' has invalid keys: k8s.pod.volume.usage"
 ```
 
----
+The BindPlane-generated config included a metric that the agent version didn't support.
 
-# The Fix
+**What worked:** The agent rolled back automatically. No broken state.
 
-The BindPlane-generated config included a metric (`k8s.pod.volume.usage`) that agent v1.80.1 didn't support.
-
-**What worked:** The agent rolled back gracefully. No broken state.
-
-**The fix:** Remove the incompatible `k8s_kubelet` source from the node config, re-apply, re-rollout. Second rollout: **Stable**.
-
-**The gap:** The error detail was only in `kubectl logs`, not in `bindplane rollout status`. The rollback itself was flawless.
+**The fix:** Remove the incompatible source, re-apply, re-rollout. Second rollout: **Stable**.
 
 ---
 
@@ -686,7 +901,7 @@ The BindPlane-generated config included a metric (`k8s.pod.volume.usage`) that a
 2. Wire them into **configurations**
 3. Group agents into **fleets**
 4. **Apply** resources, **deploy** agents, **rollout** configs
-5. BindPlane delivers configs via **OpAMP** - agents handle the rest
+5. BindPlane delivers configs via **OpAMP**
 
 Everything is a file in a repo. CI/CD follows naturally.
 
@@ -699,8 +914,8 @@ Everything is a file in a repo. CI/CD follows naturally.
 | **GitOps** | Every resource is YAML. Review in PRs, deploy from CI |
 | **Safe rollouts** | Phased delivery with automatic rollback |
 | **Fleet grouping** | New nodes auto-join the right group via labels |
-| **No server to run** | Cloud OpAMP - one WebSocket URL, agents connect out |
-| **Fan-in architecture** | One gateway, one egress point, one set of credentials |
+| **No server to run** | Cloud OpAMP - one URL, agents connect out |
+| **Fan-in** | One gateway, one egress point, one set of credentials |
 
 ---
 
@@ -708,11 +923,9 @@ Everything is a file in a repo. CI/CD follows naturally.
 
 # Resources
 
-**Get started**
-
 ---
 
-# Links
+# Links and Next Steps
 
 - **This primer:** `bp.mreider.com`
 - **Full repo:** `github.com/mreider/astroshop-bindplane-labs`
