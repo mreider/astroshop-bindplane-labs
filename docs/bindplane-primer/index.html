@@ -187,7 +187,7 @@ spec:
       value: 4317
     - name: http_port
       value: 4318</div>
-    <p class="note">Note: The CLI type names (<code>k8s_container</code>, <code>k8s_kubelet</code>) do not appear in the BindPlane <a href="https://docs.bindplane.com/integrations/sources" target="_blank" rel="noopener">documentation</a> or UI. The docs use display names like &ldquo;Kubernetes Container Logs.&rdquo; We found the CLI names by running <code>bindplane get source-types</code> and matching by keyword.</p>
+    <p class="note">Note: The type names shown above (<code>k8s_container</code>, <code>k8s_kubelet</code>, etc.) do not appear in the BindPlane <a href="https://docs.bindplane.com/integrations/sources" target="_blank" rel="noopener">documentation</a> or UI. The docs and UI use display names like &ldquo;Kubernetes Container Logs.&rdquo; To find the actual type names you need for YAML, run <code>bindplane get source-types</code> and match by keyword.</p>
   </div>
 
   <div class="entry" id="destinations">
@@ -250,7 +250,7 @@ spec:
 
   <div class="entry" id="fleets">
     <div class="entry-head"><span class="entry-num">8.</span> Fleets</div>
-    <p>You might wonder: if a configuration already has a label selector that matches agents, why do you need fleets at all? The answer is operational visibility. A <span class="term">fleet</span> gives you a named group you can monitor. You see how many agents are in it, their combined throughput, their versions, and their health status at a glance. It is the unit of <em>operations</em>, while a configuration is the unit of <em>deployment</em>. Our three fleets live in <code>bindplane/fleets.yaml</code>. Here is the gateway fleet:</p>
+    <p>A <span class="term">fleet</span> groups agents that share a purpose and assigns them a single configuration. All agents in a fleet receive the same config. Where a configuration defines <em>what</em> collectors do, a fleet lets you see <em>how they are doing</em>: how many agents are in the group, their combined throughput, their versions, and their health status at a glance. Our setup has three fleets (gateway, node, cluster), all defined in <code>bindplane/fleets.yaml</code>. Here is the gateway fleet:</p>
     <div class="ex">apiVersion: bindplane.observiq.com/v1
 kind: Fleet
 metadata:
