@@ -1,0 +1,11 @@
+.env
+.env.local
+*.pem
+*.key
+scripts/.bp-auth.json
+scripts/screenshot-probe.mjs
+node_modules/
+package.json
+package-lock.json
+.mcp.json
+.claude/

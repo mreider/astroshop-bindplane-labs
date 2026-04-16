@@ -1,0 +1,18 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Destination
+metadata:
+  name: astroshop-otlp-export
+spec:
+  type: dynatrace_otlp
+  parameters:
+    - name: telemetry_types
+      value:
+        - Logs
+        - Metrics
+        - Traces
+    - name: deployment_type
+      value: Custom
+    - name: custom_url
+      value: https://abl46885.dev.dynatracelabs.com/api/v2/otlp
+    - name: dynatrace_api_token
+      value: "${DT_API_TOKEN}"

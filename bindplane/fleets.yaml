@@ -1,0 +1,44 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Fleet
+metadata:
+  name: astroshop-gateway-fleet
+  displayName: Astroshop Gateway
+  description: Gateway collectors receiving OTLP from astroshop and forwarding to Dynatrace
+  labels:
+    platform: kubernetes-gateway
+    agent-type: observiq-otel-collector
+spec:
+  configuration: astroshop-gateway
+selector:
+  matchLabels:
+    configuration: astroshop-gateway
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Fleet
+metadata:
+  name: astroshop-node-fleet
+  displayName: Astroshop Node Agents
+  description: DaemonSet node agents collecting container logs and OTLP
+  labels:
+    platform: kubernetes-daemonset
+    agent-type: observiq-otel-collector
+spec:
+  configuration: astroshop-node
+selector:
+  matchLabels:
+    configuration: astroshop-node
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Fleet
+metadata:
+  name: astroshop-cluster-fleet
+  displayName: Astroshop Cluster Agent
+  description: Cluster agent collecting Kubernetes events
+  labels:
+    platform: kubernetes-deployment
+    agent-type: observiq-otel-collector
+spec:
+  configuration: astroshop-cluster
+selector:
+  matchLabels:
+    configuration: astroshop-cluster

@@ -1,0 +1,35 @@
+opentelemetry-collector:
+  enabled: true
+  mode: deployment
+  presets:
+    hostMetrics:
+      enabled: false
+    kubernetesAttributes:
+      enabled: true
+    kubeletMetrics:
+      enabled: false
+    clusterMetrics:
+      enabled: false
+  config:
+    exporters:
+      otlp/bindplane:
+        endpoint: bindplane-gateway-agent.bindplane-agent.svc.cluster.local:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          processors: [memory_limiter, resourcedetection, resource, transform, batch]
+          exporters: [otlp/jaeger, debug, spanmetrics, otlp/bindplane]
+        metrics:
+          receivers: [otlp, kafkametrics, spanmetrics]
+          processors: [memory_limiter, resourcedetection, resource, batch]
+          exporters: [otlphttp/prometheus, debug, otlp/bindplane]
+        logs:
+          processors: [memory_limiter, resourcedetection, resource, batch]
+          exporters: [opensearch, debug, otlp/bindplane]
+
+components:
+  frontend-proxy:
+    service:
+      type: LoadBalancer

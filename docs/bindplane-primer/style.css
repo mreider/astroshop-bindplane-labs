@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@media screen {
+  html {
+    background: #0f1421;
+  }
+  body {
+    background: #ffffff;
+    max-width: 52em;
+    margin: 3em auto;
+    padding: 2.5em 3em;
+    box-shadow: 0 0 60px rgba(0, 15, 46, 0.18);
+    position: relative;
+    border-top: 3px solid #1496ff;
+  }
+}
+
+body {
+  font: 13pt/1.6 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  color: #212121;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font: 2em/1.15 'Inter', sans-serif;
+  font-weight: 300;
+  text-align: center;
+  margin: 0 0 0.15em;
+  letter-spacing: -0.01em;
+  color: #000f2e;
+}
+
+.subtitle {
+  text-align: center;
+  color: #6b7280;
+  margin: 0 0 2em;
+  font-size: 0.9em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.ill {
+  display: block;
+  margin: 2.5em auto 1.8em;
+  width: 85%;
+  height: auto;
+}
+
+/* TOC */
+.toc {
+  border-top: 1px solid #e5e6e8;
+  border-bottom: 1px solid #e5e6e8;
+  padding: 1em 0;
+  margin-bottom: 2em;
+}
+
+.toc-label {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  margin-bottom: 0.6em;
+  color: #1496ff;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  column-gap: 2em;
+  column-rule: 0.5px solid #e5e6e8;
+}
+
+.toc li {
+  break-inside: avoid;
+  padding: 0.15em 0;
+}
+
+.toc a {
+  color: #212121;
+  text-decoration: none;
+  font-size: 0.88em;
+}
+
+.toc a:hover {
+  color: #1496ff;
+}
+
+.toc .num {
+  display: inline-block;
+  width: 1.8em;
+  text-align: right;
+  margin-right: 0.5em;
+  color: #1496ff;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+/* phase headings */
+.phase {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  color: #1496ff;
+  text-align: center;
+  margin: 3.5em 0 1.5em;
+  border-bottom: 1px solid #e5e6e8;
+  padding-bottom: 0.6em;
+}
+
+/* concept entries */
+.entry {
+  margin-bottom: 1.8em;
+  scroll-margin-top: 1em;
+}
+
+.entry-head {
+  font-weight: 700;
+  font-size: 1.05em;
+  margin-bottom: 0.2em;
+  color: #000f2e;
+}
+
+.entry-num {
+  color: #1496ff;
+  font-weight: 600;
+  font-size: 0.85em;
+  margin-right: 0.3em;
+}
+
+.entry p {
+  margin: 0.5em 0 0;
+  text-indent: 0;
+}
+
+/* term highlights */
+.term {
+  font-weight: 600;
+  color: #000f2e;
+}
+
+.it {
+  font-style: italic;
+}
+
+/* links */
+a {
+  color: #1496ff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* example blocks */
+.ex {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.78em;
+  line-height: 1.65;
+  background: #f5f7fa;
+  border-left: 3px solid #1496ff;
+  padding: 0.8em 1em;
+  margin: 0.6em 0;
+  white-space: pre;
+  overflow-x: auto;
+  color: #333;
+  border-radius: 0 4px 4px 0;
+}
+
+/* definition pairs */
+.defs {
+  margin: 1.2em 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  border-top: 1px solid #e5e6e8;
+  border-bottom: 1px solid #e5e6e8;
+}
+
+.defs dt {
+  font-weight: 600;
+  padding: 0.35em 0.5em 0.35em 0;
+  border-bottom: 0.5px solid #f0f0f0;
+  color: #000f2e;
+  font-size: 0.92em;
+}
+
+.defs dd {
+  margin: 0;
+  padding: 0.35em 0 0.35em 0.5em;
+  border-bottom: 0.5px solid #f0f0f0;
+  font-size: 0.95em;
+}
+
+.defs dt:nth-of-type(even),
+.defs dd:nth-of-type(even) {
+  background: #f9fafb;
+}
+
+.defs dt:last-of-type,
+.defs dd:last-of-type {
+  border-bottom: none;
+}
+
+/* note */
+.note {
+  font-size: 0.88em;
+  color: #6b7280;
+  margin: 0.6em 0;
+  text-indent: 0 !important;
+  padding-left: 1em;
+  border-left: 2px solid #fdc300;
+}
+
+/* screenshots */
+.screenshot {
+  display: block;
+  max-width: 100%;
+  margin: 1.5em auto;
+  border: 1px solid #e5e6e8;
+  border-radius: 6px;
+  box-shadow: 0 2px 16px rgba(0, 15, 46, 0.08);
+}
+
+/* footer */
+footer {
+  border-top: 1px solid #e5e6e8;
+  margin-top: 3em;
+  padding-top: 0.8em;
+  text-align: center;
+  font-size: 0.78em;
+  color: #adadad;
+}
+
+footer a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: #1496ff;
+}
+
+@media (max-width: 600px) {
+  body { padding: 1.5em; font-size: 12pt; }
+  .toc ol { columns: 1; }
+  .defs { grid-template-columns: 1fr; }
+  .defs dt { float: none; width: auto; }
+  .defs dd { margin-left: 0; }
+}

@@ -1,0 +1,11 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Destination
+metadata:
+  name: astroshop-gateway
+spec:
+  type: bindplane_gateway
+  parameters:
+    - name: hostname
+      value: bindplane-gateway-agent.bindplane-agent.svc.cluster.local
+    - name: grpc_port
+      value: 4317

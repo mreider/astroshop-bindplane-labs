@@ -1,0 +1,149 @@
+name: Deploy Astroshop
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - teardown
+
+env:
+  GKE_CLUSTER: astroshop-bp
+  GKE_REGION: us-central1
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  BINDPLANE_AGENT_VERSION: "1.80.1"
+
+jobs:
+  deploy:
+    if: github.event.inputs.action == 'deploy'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials $GKE_CLUSTER \
+            --region $GKE_REGION \
+            --project $GCP_PROJECT
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install BindPlane CLI
+        run: |
+          curl -L -o /tmp/bindplane.zip \
+            https://storage.googleapis.com/bindplane-op-releases/bindplane/latest/bindplane-ee-linux-amd64.zip
+          unzip /tmp/bindplane.zip -d /tmp/bindplane
+          sudo mv /tmp/bindplane/bindplane /usr/local/bin/bindplane
+          chmod +x /usr/local/bin/bindplane
+          mkdir -p ~/.bindplane
+          bindplane profile set default \
+            --api-key "${{ secrets.BINDPLANE_API_KEY }}" \
+            --remote-url "${{ secrets.BINDPLANE_REMOTE_URL }}"
+
+      - name: Apply BindPlane configurations
+        run: |
+          bindplane apply -f bindplane/sources.yaml
+          bindplane apply -f bindplane/gateway-destination.yaml
+          bindplane apply -f bindplane/gateway-to-bindplane-destination.yaml
+          bindplane apply -f bindplane/gateway-config.yaml
+          bindplane apply -f bindplane/node-config.yaml
+          bindplane apply -f bindplane/cluster-config.yaml
+          bindplane apply -f bindplane/fleets.yaml
+
+      - name: Deploy BindPlane agents
+        run: |
+          kubectl create namespace bindplane-agent --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n bindplane-agent create secret generic bindplane-agent-secret \
+            --from-literal=secret-key="${{ secrets.BINDPLANE_SECRET_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply \
+            -f bindplane/k8s-gateway-agent.yaml \
+            -f bindplane/k8s-node-agent.yaml \
+            -f bindplane/k8s-cluster-agent.yaml
+
+      - name: Deploy astroshop
+        run: |
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+          helm upgrade --install astroshop open-telemetry/opentelemetry-demo \
+            -f astroshop-values.yaml \
+            --namespace astroshop --create-namespace \
+            --wait --timeout 10m
+
+      - name: Start BindPlane rollouts
+        run: |
+          bindplane rollout start astroshop-gateway || true
+          bindplane rollout start astroshop-node || true
+          bindplane rollout start astroshop-cluster || true
+
+      - name: Show status
+        run: |
+          echo "=== BindPlane Agents ==="
+          bindplane get agents
+          echo ""
+          echo "=== Astroshop Pods ==="
+          kubectl get pods -n astroshop
+          echo ""
+          echo "=== Frontend URL ==="
+          kubectl get svc -n astroshop frontend-proxy -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}:8080/'
+          echo ""
+
+  teardown:
+    if: github.event.inputs.action == 'teardown'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials $GKE_CLUSTER \
+            --region $GKE_REGION \
+            --project $GCP_PROJECT
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Teardown
+        run: |
+          helm uninstall astroshop --namespace astroshop || true
+          kubectl delete -f bindplane/k8s-gateway-agent.yaml \
+            -f bindplane/k8s-node-agent.yaml \
+            -f bindplane/k8s-cluster-agent.yaml || true
+          kubectl delete namespace astroshop --ignore-not-found
+          kubectl delete namespace bindplane-agent --ignore-not-found

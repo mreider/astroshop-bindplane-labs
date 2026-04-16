@@ -1,0 +1,16 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Configuration
+metadata:
+  name: astroshop-cluster
+  labels:
+    configuration: astroshop-cluster
+spec:
+  contentType: ""
+  measurementInterval: 1m
+  sources:
+    - name: astroshop-k8s-events-source
+  destinations:
+    - name: astroshop-gateway
+  selector:
+    matchLabels:
+      configuration: astroshop-cluster

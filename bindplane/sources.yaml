@@ -1,0 +1,58 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Source
+metadata:
+  name: astroshop-otlp-source
+spec:
+  type: otlp
+  parameters:
+    - name: telemetry_types
+      value:
+        - Logs
+        - Metrics
+        - Traces
+    - name: listen_address
+      value: 0.0.0.0
+    - name: grpc_port
+      value: 4317
+    - name: http_port
+      value: 4318
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Source
+metadata:
+  name: astroshop-container-source
+spec:
+  type: k8s_container
+  parameters:
+    - name: cluster_name
+      value: astroshop-bp
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Source
+metadata:
+  name: astroshop-kubelet-source
+spec:
+  type: k8s_kubelet
+  parameters:
+    - name: cluster_name
+      value: astroshop-bp
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Source
+metadata:
+  name: astroshop-k8s-cluster-source
+spec:
+  type: k8s_cluster
+  parameters:
+    - name: cluster_name
+      value: astroshop-bp
+---
+apiVersion: bindplane.observiq.com/v1
+kind: Source
+metadata:
+  name: astroshop-k8s-events-source
+spec:
+  type: k8s_events
+  parameters:
+    - name: cluster_name
+      value: astroshop-bp

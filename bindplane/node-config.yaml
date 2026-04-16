@@ -1,0 +1,17 @@
+apiVersion: bindplane.observiq.com/v1
+kind: Configuration
+metadata:
+  name: astroshop-node
+  labels:
+    configuration: astroshop-node
+spec:
+  contentType: ""
+  measurementInterval: 1m
+  sources:
+    - name: astroshop-container-source
+    - name: astroshop-otlp-source
+  destinations:
+    - name: astroshop-gateway
+  selector:
+    matchLabels:
+      configuration: astroshop-node
