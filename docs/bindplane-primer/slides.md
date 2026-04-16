@@ -539,7 +539,7 @@ astroshop-gateway-fleet      astroshop-gateway
 A Kubernetes **Deployment** that acts as the central routing point.
 
 - Receives OTLP from the app's OTel Collector and other agents
-- Exports to Dynatrace - the **only agent with external credentials**
+- Exports to Dynatrace, the **only agent with external credentials**
 - The **only agent that needs network access outside the cluster**
 
 The manifest includes RBAC, a Service (ports 4317/4318), and an init container that writes a bootstrap config so the agent can start before BindPlane sends the real pipeline.
@@ -548,7 +548,7 @@ The manifest includes RBAC, a Service (ports 4317/4318), and an init container t
 
 # Node Agent
 
-A **DaemonSet** - one pod per node. Collects what the gateway can't see.
+A **DaemonSet**, one pod per node. Collects what the gateway can't see.
 
 | Feature | Why |
 |---------|-----|
@@ -924,7 +924,7 @@ Everything is a file in a repo. CI/CD follows naturally.
 | **GitOps** | Every resource is YAML. Review in PRs, deploy from CI |
 | **Safe rollouts** | Phased delivery with automatic rollback |
 | **Fleet grouping** | New nodes auto-join the right group via labels |
-| **No server to run** | Cloud OpAMP - one URL, agents connect out |
+| **No server to run** | Cloud OpAMP: one URL, agents connect out |
 | **Fan-in** | One gateway, one egress point, one set of credentials |
 
 ---
