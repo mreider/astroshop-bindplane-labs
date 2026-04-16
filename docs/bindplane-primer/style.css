@@ -311,32 +311,23 @@ footer a:hover {
 /* ——— Download link ——— */
 .download-pptx {
   position: absolute;
-  top: 2em;
-  right: 2.5em;
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  text-decoration: none;
-  color: var(--text-muted);
-  font-size: 0.7em;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  transition: color 0.15s ease, opacity 0.15s ease;
-  opacity: 0.6;
+  top: 1.8em;
+  right: 2.2em;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  opacity: 0.55;
 }
 
 .download-pptx:hover {
-  color: var(--blue);
   opacity: 1;
+  transform: scale(1.08);
   text-decoration: none;
 }
 
 .download-pptx img {
-  width: 22px !important;
-  height: 22px !important;
-  max-width: 22px;
-  display: inline-block;
+  width: 36px !important;
+  height: 36px !important;
+  max-width: 36px;
+  display: block;
 }
 
 /* ——— Selection ——— */
