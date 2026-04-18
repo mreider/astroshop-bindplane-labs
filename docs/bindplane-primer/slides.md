@@ -254,16 +254,6 @@ No matching resources found.
 
 No agents yet. That's expected. The empty response confirms your CLI is authenticated.
 
-**Step 4:** Get your secret key (you'll need it later for agents)
-
-```
-$ bindplane secret get
-
-01KPAT6TVX0Z2TP8H1ZWN47EZE (default)
-```
-
-Save this value. Agents use it to authenticate with BindPlane.
-
 ---
 
 <!-- _class: title -->
@@ -284,6 +274,8 @@ You define it once as a named resource. Any number of configurations can referen
 |-------------|-----------------|
 | `otlp` | Traces, metrics, logs via OTLP |
 | `k8s_container` | Container logs from the node |
+| `k8s_kubelet` | Pod CPU, memory (kubelet-level) |
+| `k8s_cluster` | Cluster-wide metrics |
 | `k8s_events` | Kubernetes event objects |
 
 ---
@@ -542,7 +534,7 @@ A Kubernetes **Deployment** that acts as the central routing point.
 - Exports to Dynatrace, the **only agent with external credentials**
 - The **only agent that needs network access outside the cluster**
 
-The manifest includes RBAC, a Service (ports 4317/4318), and an init container that writes a bootstrap config so the agent can start before BindPlane sends the real pipeline.
+The manifest includes RBAC and a Service on ports 4317/4318. The agent starts with a bootstrap config, then BindPlane delivers the real pipeline via OpAMP.
 
 ---
 
@@ -598,7 +590,15 @@ New pod starts, labels match, fleet assigned, config pushed. **Automatic.**
 
 # Lab 4: Create the Namespace and Secret
 
-The agents run in their own namespace and need the secret key from Lab 1:
+Get the secret key agents use to authenticate with BindPlane:
+
+```
+$ bindplane secret get
+
+01KPAT6TVX0Z2TP8H1ZWN47EZE (default)
+```
+
+Create a namespace and store the key as a Kubernetes secret:
 
 ```
 kubectl create namespace bindplane-agent
@@ -607,8 +607,6 @@ kubectl -n bindplane-agent create secret generic \
   bindplane-agent-secret \
   --from-literal=secret-key="YOUR_SECRET_KEY"
 ```
-
-Replace `YOUR_SECRET_KEY` with the value from `bindplane secret get`.
 
 ---
 
@@ -733,6 +731,40 @@ If any show **Error**, check the agent pod logs with `kubectl logs -n bindplane-
 
 ---
 
+# When a Rollout Fails
+
+Rollback is the feature that matters. Here is what it looks like when the safety net fires.
+
+```
+$ bindplane rollout status astroshop-node
+
+NAME              STATUS  COMPLETED  ERRORS  PENDING
+astroshop-node:1  Error   0          1       2
+```
+
+One agent rejected the config. Two were held back. The CLI shows the count, but not **what** went wrong.
+
+---
+
+# Finding the Error
+
+Check the pod logs on the rejecting agent:
+
+```
+$ kubectl logs -n bindplane-agent bindplane-node-agent-wblpl
+
+"Failed applying remote config"
+"error: 'metrics' has invalid keys: k8s.pod.volume.usage"
+```
+
+The BindPlane-generated config included a metric the agent version didn't support.
+
+**What worked:** the agent rolled back automatically. No broken state.
+
+**The fix:** remove the incompatible source, re-apply, re-rollout. Second rollout: **Stable**.
+
+---
+
 <!-- _class: title -->
 
 # Module 6
@@ -831,16 +863,15 @@ Non-zero throughput means telemetry is flowing through the gateway to Dynatrace.
 
 ---
 
-<!-- _class: screenshot -->
+# Lab 6: Confirm in Dynatrace
 
-# Verify in the BindPlane UI
+Open your Dynatrace environment and find data from the Astronomy Shop:
 
-![placeholder](screenshots/agents.png)
+- **Traces:** Distributed Traces, filter by service `frontend` or `checkout`
+- **Metrics:** Data Explorer, filter by `k8s.namespace.name=astroshop`
+- **Logs:** Logs & Events, filter by `k8s.namespace.name=astroshop`
 
-**SCREENSHOT:** BindPlane > Agents page
-- All agents connected with throughput
-- Gateway shows logs, metrics, and traces
-- **Key point:** End-to-end pipeline is working
+If each view shows data, the pipeline from app to gateway to Dynatrace is end-to-end live. **That's the goal this primer set out to reach.**
 
 ---
 
@@ -854,48 +885,6 @@ Non-zero throughput means telemetry is flowing through the gateway to Dynatrace.
 - OTLP source on the left, Dynatrace on the right
 - Live throughput bars showing data flow
 - **Key point:** The YAML you wrote, visualized
-
----
-
-<!-- _class: title -->
-
-# Debugging
-
-**What happens when things go wrong**
-
----
-
-# A Real Rollout Failure
-
-After rolling out the node config, we saw this:
-
-```
-$ bindplane rollout status astroshop-node
-
-NAME              STATUS  COMPLETED  ERRORS  PENDING
-astroshop-node:1  Error   0          1       2
-```
-
-One agent rejected the config. Two were held back. The CLI shows the count, but not **what** went wrong.
-
----
-
-# Finding the Error
-
-We checked the pod logs:
-
-```
-$ kubectl logs -n bindplane-agent bindplane-node-agent-wblpl
-
-"Failed applying remote config"
-"error: 'metrics' has invalid keys: k8s.pod.volume.usage"
-```
-
-The BindPlane-generated config included a metric that the agent version didn't support.
-
-**What worked:** The agent rolled back automatically. No broken state.
-
-**The fix:** Remove the incompatible source, re-apply, re-rollout. Second rollout: **Stable**.
 
 ---
 
